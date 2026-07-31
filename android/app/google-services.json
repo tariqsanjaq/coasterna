@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "58537566066",
+    "project_id": "coasterna-fa940",
+    "storage_bucket": "coasterna-fa940.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:58537566066:android:0771d2c00f49ee61dcc7eb",
+        "android_client_info": {
+          "package_name": "com.aau.coasterna.coasterna_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCf-f8Ya4xaXUgHHY10Lvuh9Gt0zSEooro"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
