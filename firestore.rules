@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Returns true only if the currently signed-in user's uid exists
+    // as a document ID inside the admins collection. This does NOT
+    // require a separate read permission on /admins — exists() checks
+    // are evaluated by the rules engine itself, not by the client.
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // stops: every student (signed in or not) can read stop data to
+    // search and browse. Only a signed-in admin can add, edit, or
+    // delete a stop.
+    match /stops/{stopId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // routes: every student (signed in or not) can read route data to
+    // search and browse. Only a signed-in admin can add, edit, or
+    // delete a route.
+    match /routes/{routeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // admins: nobody can read or write this collection from the app,
+    // in either direction. Admin accounts are added manually through
+    // the Firebase Console by Tariq or Abdallah, never through the app.
+    match /admins/{adminId} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}
