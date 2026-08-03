@@ -7,8 +7,7 @@ import '../theme/app_theme.dart';
 /// and the lowercase "coasterna" wordmark underneath.
 ///
 /// Auto-advances to [nextPage] after a fixed delay.
-///
-/// NOTE: the bus+pin icon below is a built-in Flutter icon stand-in.
+///Note:
 /// Swap it for the real brand mark (a designed image asset) once it
 /// exists — that is a separate later task.
 class SplashScreen extends StatefulWidget {
