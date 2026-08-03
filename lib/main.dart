@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'core/theme/app_theme.dart';
+import 'core/presentation/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,13 +19,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Coasterna',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F6E56)),
-        useMaterial3: true,
-      ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('Firebase connected ✅'),
+      theme: appTheme,
+      home: SplashScreen(
+        // Temporary placeholder destination until the real search
+        // screen exists. Replace nextPage once it is built.
+        nextPage: Scaffold(
+          appBar: AppBar(title: const Text('Coasterna')),
+          body: const Center(child: Text('Home placeholder')),
         ),
       ),
     );
