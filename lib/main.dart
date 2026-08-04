@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/presentation/splash_screen.dart';
+import 'features/search/presentation/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,12 +22,7 @@ class MyApp extends StatelessWidget {
       title: 'Coasterna',
       theme: appTheme,
       home: SplashScreen(
-        // Temporary placeholder destination until the real search
-        // screen exists. Replace nextPage once it is built.
-        nextPage: Scaffold(
-          appBar: AppBar(title: const Text('Coasterna')),
-          body: const Center(child: Text('Home placeholder')),
-        ),
+        nextPage: const HomePage(),
       ),
     );
   }
