@@ -17,29 +17,17 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -57,6 +45,41 @@ class DefaultFirebaseOptions {
     appId: '1:58537566066:android:0771d2c00f49ee61dcc7eb',
     messagingSenderId: '58537566066',
     projectId: 'coasterna-fa940',
+    storageBucket: 'coasterna-fa940.firebasestorage.app',
+  );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyC6PsYGO7t3r0Vx8w_9qCgM4nYXxAivg2o',
+    appId: '1:58537566066:web:7de1e5a3bac93655dcc7eb',
+    messagingSenderId: '58537566066',
+    projectId: 'coasterna-fa940',
+    authDomain: 'coasterna-fa940.firebaseapp.com',
+    storageBucket: 'coasterna-fa940.firebasestorage.app',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyDIkUKE9M88dNPTvYxBW0x7GfbE_m6Kjac',
+    appId: '1:58537566066:ios:ea5ad1caf014f339dcc7eb',
+    messagingSenderId: '58537566066',
+    projectId: 'coasterna-fa940',
+    storageBucket: 'coasterna-fa940.firebasestorage.app',
+    iosBundleId: 'com.aau.coasterna.coasternaProject',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDIkUKE9M88dNPTvYxBW0x7GfbE_m6Kjac',
+    appId: '1:58537566066:ios:ea5ad1caf014f339dcc7eb',
+    messagingSenderId: '58537566066',
+    projectId: 'coasterna-fa940',
+    storageBucket: 'coasterna-fa940.firebasestorage.app',
+    iosBundleId: 'com.aau.coasterna.coasternaProject',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyC6PsYGO7t3r0Vx8w_9qCgM4nYXxAivg2o',
+    appId: '1:58537566066:web:5e34820be4b28f34dcc7eb',
+    messagingSenderId: '58537566066',
+    projectId: 'coasterna-fa940',
+    authDomain: 'coasterna-fa940.firebaseapp.com',
     storageBucket: 'coasterna-fa940.firebasestorage.app',
   );
 }
