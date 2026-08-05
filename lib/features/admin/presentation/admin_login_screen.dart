@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
+import 'admin_home_screen.dart';
 
 /// Admin Dashboard entry point. Runs ONLY on Flutter Web — see the
 /// kIsWeb check in main.dart (Day 1, card 5). Completely separate
@@ -37,12 +38,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      // Navigation to the Admin Home (route/stop list) is wired in
-      // the Day 2 task. For today, a successful sign-in just clears
-      // the loading state — you will see the same login screen stay
-      // put, which is expected (see the Day-1 verification table).
       if (!mounted) return;
       setState(() => _isLoading = false);
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const AdminHomeScreen()),
+      );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() {

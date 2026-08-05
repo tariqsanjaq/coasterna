@@ -33,4 +33,21 @@ class RouteRepository {
 
     return snapshot.docs.map((doc) => RouteModel.fromFirestore(doc)).toList();
   }
+  /// Creates a new stop document in Firestore. Firestore Security
+  /// Rules (not this method) enforce that only a signed-in admin can
+  /// succeed here — an unauthenticated or non-admin call throws a
+  /// PERMISSION_DENIED FirebaseException.
+  /// Returns the new document's auto-generated ID.
+  Future<String> createStop(StopModel stop) async {
+    final docRef =
+    await _firestore.collection('stops').add(stop.toFirestore());
+    return docRef.id;
+  }
+  /// Creates a new route document in Firestore. Same admin-only
+  /// enforcement as createStop — via Security Rules, not this code.
+  Future<String> createRoute(RouteModel route) async {
+    final docRef =
+    await _firestore.collection('routes').add(route.toFirestore());
+    return docRef.id;
+  }
 }
