@@ -37,8 +37,14 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
   Future<void> _loadRoutes() async {
     setState(() => _state = _LoadState.loading);
     try {
-      final routes =
-      await widget.repository.searchRoutesByOrigin(widget.fromStop.id);
+      // FIX (Aug 2026): pass the destination too, when the student
+      // picked one. Before this line only sent fromStop.id, so the
+      // repository ignored "To" completely and returned every active
+      // route from the origin — see decision log entry #6.
+      final routes = await widget.repository.searchRoutesByOrigin(
+        widget.fromStop.id,
+        destinationStopId: widget.toStop?.id,
+      );
       if (!mounted) return;
       setState(() {
         _routes = routes;

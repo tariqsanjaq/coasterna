@@ -24,15 +24,33 @@ class RouteRepository {
   /// Returns every active route departing from [originStopId], for the
   /// Search Results screen (artboard 4). Does NOT sort by next
   /// departure — that happens later, in the presentation layer.
-  Future<List<RouteModel>> searchRoutesByOrigin(String originStopId) async {
-    final snapshot = await _firestore
+  ///
+  /// [destinationStopId] is optional. When the student picked a "To"
+  /// stop, pass it here and the query adds a third equality filter so
+  /// only routes matching BOTH origin and destination come back. When
+  /// null (student left "To" empty), the query behaves exactly as
+  /// before — every active route from [originStopId], any destination.
+  ///
+  /// Still a single-collection query with only `==` filters, so no
+  /// composite index is required — see docs/data-model.md.
+  Future<List<RouteModel>> searchRoutesByOrigin(
+      String originStopId, {
+        String? destinationStopId,
+      }) async {
+    Query<Map<String, dynamic>> query = _firestore
         .collection('routes')
         .where('originStopId', isEqualTo: originStopId)
-        .where('isActive', isEqualTo: true)
-        .get();
+        .where('isActive', isEqualTo: true);
+
+    if (destinationStopId != null) {
+      query = query.where('destinationStopId', isEqualTo: destinationStopId);
+    }
+
+    final snapshot = await query.get();
 
     return snapshot.docs.map((doc) => RouteModel.fromFirestore(doc)).toList();
   }
+
   /// Creates a new stop document in Firestore. Firestore Security
   /// Rules (not this method) enforce that only a signed-in admin can
   /// succeed here — an unauthenticated or non-admin call throws a
@@ -43,6 +61,7 @@ class RouteRepository {
     await _firestore.collection('stops').add(stop.toFirestore());
     return docRef.id;
   }
+
   /// Creates a new route document in Firestore. Same admin-only
   /// enforcement as createStop — via Security Rules, not this code.
   Future<String> createRoute(RouteModel route) async {

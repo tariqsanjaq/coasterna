@@ -7,8 +7,8 @@ import 'widgets/stop_picker_sheet.dart';
 
 /// Artboard 2 — Home / Search. The student picks a FROM stop
 /// (required) and taps Search to see every active route departing
-/// from it. TO is optional and informational only — see the scope
-/// note in this task's Why/Warning callout.
+/// from it. TO is optional — the student can pick a destination to
+/// narrow results, or clear it with the small "x" button once picked.
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -43,6 +43,13 @@ class _HomeViewState extends State<_HomeView> {
     if (selected != null) {
       setState(() => _toStop = selected);
     }
+  }
+
+  // FIX (Aug 2026): lets the student undo a wrong "To" pick without
+  // reopening the Stop Picker and having no way back to "no destination".
+  // Only clears local state — nothing is sent to Firestore here.
+  void _clearToStop() {
+    setState(() => _toStop = null);
   }
 
   Future<StopModel?> _openStopPicker({required String title}) {
@@ -110,6 +117,7 @@ class _HomeViewState extends State<_HomeView> {
                 value: _toStop?.name,
                 icon: Icons.place_outlined,
                 onTap: _pickToStop,
+                onClear: _toStop != null ? _clearToStop : null,
               ),
               const SizedBox(height: AppSpacing.xl),
               SizedBox(
@@ -149,18 +157,26 @@ class _HomeViewState extends State<_HomeView> {
 
 /// One tappable row that opens the Stop Picker. Shows the picked
 /// stop's name once selected, or a placeholder before that.
+///
+/// [onClear] is optional. When provided (non-null), a small "x"
+/// button appears at the trailing edge instead of the chevron, and
+/// tapping it calls [onClear] without reopening the Stop Picker.
+/// Leave it null for fields where the value cannot be cleared, like
+/// "From", which is required.
 class _StopField extends StatelessWidget {
   const _StopField({
     required this.label,
     required this.value,
     required this.icon,
     required this.onTap,
+    this.onClear,
   });
 
   final String label;
   final String? value;
   final IconData icon;
   final VoidCallback onTap;
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -204,7 +220,14 @@ class _StopField extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+            if (onClear != null)
+              IconButton(
+                icon: const Icon(Icons.clear, color: AppColors.textTertiary),
+                tooltip: 'Clear $label',
+                onPressed: onClear,
+              )
+            else
+              const Icon(Icons.chevron_right, color: AppColors.textTertiary),
           ],
         ),
       ),
