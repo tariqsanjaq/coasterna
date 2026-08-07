@@ -23,6 +23,8 @@ class AdminManageScreen extends StatelessWidget {
           title: const Text('Manage Stops & Routes'),
           bottom: const TabBar(
             indicatorColor: AppColors.accent,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
             tabs: [
               Tab(text: 'Stops'),
               Tab(text: 'Routes'),
@@ -118,10 +120,23 @@ class _StopsTabState extends State<_StopsTab> {
                 border: Border.all(color: AppColors.surfaceBorder),
               ),
               child: ListTile(
-                leading: const Icon(Icons.location_on_outlined,
-                    color: AppColors.primary),
-                title: Text(stop.name),
-                subtitle: Text(stop.area),
+                leading: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.primary,
+                  child: const Icon(Icons.location_on,
+                      color: Colors.white, size: 20),
+                ),
+                title: Text(
+                  stop.name,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  stop.area,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
                 trailing: Switch(
                   value: stop.isActive,
                   activeColor: AppColors.accent,
@@ -214,11 +229,23 @@ class _RoutesTabState extends State<_RoutesTab> {
                 border: Border.all(color: AppColors.surfaceBorder),
               ),
               child: ListTile(
-                leading: const Icon(Icons.route_outlined,
-                    color: AppColors.primary),
-                title: Text(route.routeName),
+                leading: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.primary,
+                  child: const Icon(Icons.route,
+                      color: Colors.white, size: 20),
+                ),
+                title: Text(
+                  route.routeName,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 subtitle: Text(
-                    route.originStopName + ' -> ' + route.destinationStopName),
+                  route.originStopName + ' -> ' + route.destinationStopName,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
                 trailing: Switch(
                   value: route.isActive,
                   activeColor: AppColors.accent,
