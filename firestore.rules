@@ -35,5 +35,13 @@ service cloud.firestore {
       allow read: if false;
       allow write: if false;
     }
+
+    // Any other collection not explicitly listed above is fully
+    // locked by default. This protects any collection added later
+    // (accidentally or intentionally) until rules for it are written
+    // deliberately.
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
