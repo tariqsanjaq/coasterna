@@ -96,4 +96,17 @@ class RouteRepository {
   Future<void> setRouteActive(String routeId, bool isActive) async {
     await _firestore.collection('routes').doc(routeId).update({'isActive': isActive});
   }
+
+  /// Returns EVERY active route regardless of origin, for the
+  /// "Browse all routes" screen. Single equality filter on isActive
+  /// — same reasoning as searchRoutesByOrigin, no composite index
+  /// needed.
+  Future<List<RouteModel>> getAllActiveRoutes() async {
+    final snapshot = await _firestore
+        .collection('routes')
+        .where('isActive', isEqualTo: true)
+        .get();
+    return snapshot.docs.map((doc) => RouteModel.fromFirestore(doc)).toList();
+  }
+
 }
