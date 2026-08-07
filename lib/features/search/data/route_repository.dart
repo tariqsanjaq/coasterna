@@ -69,4 +69,31 @@ class RouteRepository {
     await _firestore.collection('routes').add(route.toFirestore());
     return docRef.id;
   }
+  /// Returns EVERY stop regardless of isActive, for the Admin
+  /// management list. Do NOT use this for student-facing search —
+  /// use getAllStops() there, which already filters to isActive only.
+  Future<List<StopModel>> getAllStopsForAdmin() async {
+    final snapshot = await _firestore.collection('stops').get();
+    return snapshot.docs.map((doc) => StopModel.fromFirestore(doc)).toList();
+  }
+
+  /// Returns EVERY route regardless of isActive, for the Admin
+  /// management list.
+  Future<List<RouteModel>> getAllRoutesForAdmin() async {
+    final snapshot = await _firestore.collection('routes').get();
+    return snapshot.docs.map((doc) => RouteModel.fromFirestore(doc)).toList();
+  }
+
+  /// Flips a stop's isActive flag. Security Rules (Task #4) already
+  /// restrict this write to signed-in admins only — no rules changes
+  /// needed for this method to work.
+  Future<void> setStopActive(String stopId, bool isActive) async {
+    await _firestore.collection('stops').doc(stopId).update({'isActive': isActive});
+  }
+
+  /// Flips a route's isActive flag. Same admin-only enforcement,
+  /// already covered by the existing rules.
+  Future<void> setRouteActive(String routeId, bool isActive) async {
+    await _firestore.collection('routes').doc(routeId).update({'isActive': isActive});
+  }
 }

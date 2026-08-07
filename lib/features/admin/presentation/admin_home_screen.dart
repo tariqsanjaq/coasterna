@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import 'add_stop_screen.dart';
 import 'add_route_screen.dart';
+import 'admin_manage_screen.dart';
 
-/// Landing screen after a successful admin sign-in. Deliberately
-/// minimal for now — just navigation into the two data-entry forms.
-/// A real routes/stops list view is a later, separate task.
+/// Landing screen after a successful admin sign-in. Three actions:
+/// add a stop, add a route, or manage (view + activate/deactivate)
+/// everything that already exists.
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
 
@@ -55,6 +56,22 @@ class AdminHomeScreen extends StatelessWidget {
                     },
                     icon: const Icon(Icons.route_outlined),
                     label: const Text('Add Route'),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  height: kMinTouchTarget,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const AdminManageScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.list_alt_outlined),
+                    label: const Text('Manage Stops & Routes'),
                   ),
                 ),
               ],
