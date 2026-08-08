@@ -4,6 +4,7 @@ import '../../../core/models/route_model.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/route_repository.dart';
+import 'widgets/route_status_badge.dart';
 
 /// Artboard 4 — Search Results.
 class SearchResultsPlaceholder extends StatefulWidget {
@@ -182,6 +183,8 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: AppSpacing.sm),
+                  RouteStatusBadge(route: route),
                   const Divider(
                       height: AppSpacing.xl, color: AppColors.surfaceBorder),
                   InkWell(
