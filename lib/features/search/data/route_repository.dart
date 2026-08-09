@@ -69,6 +69,7 @@ class RouteRepository {
     await _firestore.collection('routes').add(route.toFirestore());
     return docRef.id;
   }
+
   /// Returns EVERY stop regardless of isActive, for the Admin
   /// management list. Do NOT use this for student-facing search —
   /// use getAllStops() there, which already filters to isActive only.
@@ -88,13 +89,19 @@ class RouteRepository {
   /// restrict this write to signed-in admins only — no rules changes
   /// needed for this method to work.
   Future<void> setStopActive(String stopId, bool isActive) async {
-    await _firestore.collection('stops').doc(stopId).update({'isActive': isActive});
+    await _firestore
+        .collection('stops')
+        .doc(stopId)
+        .update({'isActive': isActive});
   }
 
   /// Flips a route's isActive flag. Same admin-only enforcement,
   /// already covered by the existing rules.
   Future<void> setRouteActive(String routeId, bool isActive) async {
-    await _firestore.collection('routes').doc(routeId).update({'isActive': isActive});
+    await _firestore
+        .collection('routes')
+        .doc(routeId)
+        .update({'isActive': isActive});
   }
 
   /// Returns EVERY active route regardless of origin, for the
@@ -109,4 +116,23 @@ class RouteRepository {
     return snapshot.docs.map((doc) => RouteModel.fromFirestore(doc)).toList();
   }
 
+  /// Permanently deletes a stop document. This is a real delete, not
+  /// a deactivation — there is no undo. The existing Security Rule
+  /// `allow write: if isAdmin();` on /stops already covers delete
+  /// (Firestore's "write" permission means create + update + delete
+  /// together), so no rules changes were needed for this method.
+  ///
+  /// This does NOT check whether any route still references this
+  /// stop's ID as an originStopId or destinationStopId — that check
+  /// is a deliberate simplification for the MVP. Logged for Ch.7
+  /// Future Work as "referential integrity checks before deletion".
+  Future<void> deleteStop(String stopId) async {
+    await _firestore.collection('stops').doc(stopId).delete();
+  }
+
+  /// Permanently deletes a route document. Same admin-only
+  /// enforcement and same "no undo" warning as deleteStop.
+  Future<void> deleteRoute(String routeId) async {
+    await _firestore.collection('routes').doc(routeId).delete();
+  }
 }
