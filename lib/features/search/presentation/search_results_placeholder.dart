@@ -3,8 +3,9 @@ import '../../../core/models/route_model.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/route_repository.dart';
+import 'widgets/route_status_badge.dart';
 
-/// Artboard 4 — Search Results.
+/// Artboard 4 - Search Results.
 class SearchResultsPlaceholder extends StatefulWidget {
   const SearchResultsPlaceholder({
     super.key,
@@ -37,14 +38,21 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
   Future<void> _loadRoutes() async {
     setState(() => _state = _LoadState.loading);
     try {
-      // FIX (Aug 2026): pass the destination too, when the student
-      // picked one. Before this line only sent fromStop.id, so the
-      // repository ignored "To" completely and returned every active
-      // route from the origin — see decision log entry #6.
       final routes = await widget.repository.searchRoutesByOrigin(
         widget.fromStop.id,
         destinationStopId: widget.toStop?.id,
       );
+
+      // Sorted here in the app, not in the query. Firestore would
+      // need a composite index to order by a computed departure time,
+      // and the result set for one origin is small enough that
+      // sorting on the device costs nothing measurable.
+      final now = DateTime.now();
+      routes.sort(
+            (a, b) =>
+            routeDepartureRank(a, now).compareTo(routeDepartureRank(b, now)),
+      );
+
       if (!mounted) return;
       setState(() {
         _routes = routes;
@@ -61,9 +69,35 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.surface,
-        title: Text('From ${widget.fromStop.name}'),
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleSpacing: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Search results',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            if (_state == _LoadState.loaded)
+              Text(
+                '${_routes.length} ${_routes.length == 1 ? "route" : "routes"}'
+                    ' \u00B7 soonest departure first',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+          ],
+        ),
       ),
       body: SafeArea(child: _buildBody()),
     );
@@ -73,7 +107,9 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
     switch (_state) {
       case _LoadState.loading:
         return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary));
+          child: CircularProgressIndicator(color: AppColors.primary),
+        );
+
       case _LoadState.error:
         return Center(
           child: Column(
@@ -81,87 +117,141 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
             children: [
               const Icon(Icons.wifi_off, color: AppColors.error, size: 32),
               const SizedBox(height: AppSpacing.sm),
-              const Text('Could not load buses. Check your connection.',
-                  style: TextStyle(color: AppColors.textSecondary)),
+              const Text(
+                'Could not load buses. Check your connection.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
               const SizedBox(height: AppSpacing.sm),
               TextButton(onPressed: _loadRoutes, child: const Text('Retry')),
             ],
           ),
         );
+
       case _LoadState.empty:
-      // Matches the certified Empty State illustration from
-      // Coasterna_UI_Design_v8.7.pdf (Ch.4.3). Asset registered in
-      // pubspec.yaml as assets/images/empty_results.png.
         return Center(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.xl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset(
-                  'assets/images/empty_results.png',
-                  width: 240,
-                ),
+                Image.asset('assets/images/empty_results.png', width: 240),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   'No buses found from ${widget.fromStop.name} yet.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 14),
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ),
           ),
         );
+
       case _LoadState.loaded:
         return ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.lg),
           itemCount: _routes.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-          itemBuilder: (context, index) {
-            final route = _routes[index];
-            return Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.surfaceBorder),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(route.routeName,
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text('To ${route.destinationStopName}',
-                      style: const TextStyle(color: AppColors.textSecondary)),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        route.departureType == DepartureType.scheduled
-                            ? '${route.firstDeparture} - ${route.lastDeparture}'
-                            : 'Departs when full',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 13),
-                      ),
-                      Text(
-                        '${route.priceJD.toStringAsFixed(2)} JD',
-                        style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+          itemBuilder: (context, index) => _buildRouteCard(_routes[index]),
         );
     }
+  }
+
+  Widget _buildRouteCard(RouteModel route) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.surfaceBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  route.routeName,
+                  style: const TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _DirectionChip(route: route),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+
+          // The stop the student actually searched from. Matching the
+          // search origin against the intermediate waypoints stored
+          // inside the route is deferred to Chapter 7 (Future Work),
+          // so this deliberately shows the searched stop only.
+          Text(
+            'Board at: ${widget.fromStop.name}',
+            style: const TextStyle(
+              color: AppColors.accent,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+
+          Text(
+            '${route.priceJD.toStringAsFixed(2)} JD'
+                ' \u00B7 about ${route.durationMinutes} min',
+            style: AppTextStyles.monoData(fontSize: 13.5),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+
+          RouteStatusBadge(route: route),
+        ],
+      ),
+    );
+  }
+}
+
+/// The small outlined pill on the right of each card showing whether
+/// this route travels towards the university or away from it.
+class _DirectionChip extends StatelessWidget {
+  const _DirectionChip({required this.route});
+
+  final RouteModel route;
+
+  @override
+  Widget build(BuildContext context) {
+    // "To AAU" is reserved for routes that actually terminate at the
+    // university. A leg that only moves the student closer to it,
+    // such as Mahes to Sweileh, must not claim to arrive there.
+    final String label;
+    if (route.destinationStopName.toLowerCase().contains('aau')) {
+      label = 'To AAU';
+    } else if (route.direction == RouteDirection.outbound) {
+      label = 'Towards AAU';
+    } else {
+      label = 'From AAU';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.primary),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          color: AppColors.primary,
+        ),
+      ),
+    );
   }
 }

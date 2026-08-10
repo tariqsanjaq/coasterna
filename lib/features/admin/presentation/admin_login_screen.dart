@@ -18,6 +18,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _errorMessage;
 
   @override
@@ -45,13 +46,21 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+      // SECURITY (Aug 2026): every login failure — bad format, wrong
+      // password, unknown account — shows the exact same message.
+      // Distinguishing them lets an attacker enumerate valid admin
+      // emails, so we deliberately collapse all FirebaseAuthException
+      // codes into one generic response. Never surface e.code to the
+      // user; it's an internal detail, not something they can act on.
       setState(() {
         _isLoading = false;
         _errorMessage = switch (e.code) {
-          'user-not-found' || 'wrong-password' || 'invalid-credential' =>
+          'user-not-found' ||
+          'wrong-password' ||
+          'invalid-credential' ||
+          'invalid-email' =>
           'Incorrect email or password.',
-          'invalid-email' => 'That email address looks invalid.',
-          _ => 'Sign-in failed (${e.code}). Try again.',
+          _ => 'Sign-in failed. Try again.',
         };
       });
     } catch (_) {
@@ -63,36 +72,79 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     }
   }
 
+  void _togglePasswordVisibility() {
+    setState(() => _obscurePassword = !_obscurePassword);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Padding(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Container(
             padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(color: AppColors.surfaceBorder),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    border: Border.all(color: AppColors.surfaceBorder),
+                  ),
+                  child: Image.asset('assets/images/coasterna_logo.png'),
+                ),
+                const SizedBox(height: AppSpacing.md),
                 const Text(
-                  'Coasterna Admin',
+                  'Coasterna admin',
                   style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary),
                 ),
+                const SizedBox(height: AppSpacing.xs),
+                const Text(
+                  'Sign in to manage routes and stops.',
+                  style: TextStyle(
+                      fontSize: 13, color: AppColors.textSecondary),
+                ),
                 const SizedBox(height: AppSpacing.xl),
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: const InputDecoration(
+                    hintText: 'admin@example.com',
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    hintText: 'Password',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: AppColors.textTertiary,
+                      ),
+                      tooltip: _obscurePassword
+                          ? 'Show password'
+                          : 'Hide password',
+                      onPressed: _togglePasswordVisibility,
+                    ),
+                  ),
                 ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: AppSpacing.md),
@@ -110,6 +162,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.surface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                      ),
                     ),
                     child: _isLoading
                         ? const SizedBox(

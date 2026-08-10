@@ -1,14 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/models/stop_model.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../data/route_repository.dart';
+import 'all_routes_screen.dart';
 import 'search_results_placeholder.dart';
 import 'widgets/stop_picker_sheet.dart';
 
-/// Artboard 2 — Home / Search. The student picks a FROM stop
-/// (required) and taps Search to see every active route departing
-/// from it. TO is optional — the student can pick a destination to
-/// narrow results, or clear it with the small "x" button once picked.
+/// Artboard 2 — Home / Search.
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -26,10 +26,53 @@ class _HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<_HomeView> {
+  static const _recentSearchesKey = 'recent_searches';
+  static const _maxRecentSearches = 5;
+
   final RouteRepository _repository = RouteRepository();
 
   StopModel? _fromStop;
   StopModel? _toStop;
+  List<Map<String, dynamic>> _recentSearches = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentSearches();
+  }
+
+  Future<void> _loadRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_recentSearchesKey);
+    if (raw == null) return;
+    final decoded = jsonDecode(raw) as List<dynamic>;
+    if (!mounted) return;
+    setState(() {
+      _recentSearches = decoded.cast<Map<String, dynamic>>();
+    });
+  }
+
+  // Saves the search that was JUST run to the front of the recent
+  // list, removing any earlier entry for the same From/To pair so we
+  // don't show duplicates, then caps the list at 5 entries.
+  Future<void> _saveRecentSearch(StopModel from, StopModel? to) async {
+    final entry = {
+      'fromId': from.id,
+      'fromName': from.name,
+      'toId': to?.id,
+      'toName': to?.name,
+    };
+    final updated = [
+      entry,
+      ..._recentSearches.where(
+              (e) => e['fromId'] != from.id || e['toId'] != to?.id),
+    ].take(_maxRecentSearches).toList();
+
+    setState(() => _recentSearches = updated);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_recentSearchesKey, jsonEncode(updated));
+  }
 
   Future _pickFromStop() async {
     final selected = await _openStopPicker(title: 'From');
@@ -45,9 +88,6 @@ class _HomeViewState extends State<_HomeView> {
     }
   }
 
-  // FIX (Aug 2026): lets the student undo a wrong "To" pick without
-  // reopening the Stop Picker and having no way back to "no destination".
-  // Only clears local state — nothing is sent to Firestore here.
   void _clearToStop() {
     setState(() => _toStop = null);
   }
@@ -68,11 +108,56 @@ class _HomeViewState extends State<_HomeView> {
 
   void _search() {
     if (_fromStop == null) return;
+    _saveRecentSearch(_fromStop!, _toStop);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => SearchResultsPlaceholder(
           fromStop: _fromStop!,
           toStop: _toStop,
+          repository: _repository,
+        ),
+      ),
+    );
+  }
+
+  void _openAllRoutes() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AllRoutesScreen(repository: _repository),
+      ),
+    );
+  }
+
+  // Re-runs a saved recent search. We only stored stop IDs and names
+  // (not full StopModel objects), so we re-fetch the current stop
+  // list and match by ID. If a stop was deleted or deactivated since
+  // the search was saved, we tell the student instead of crashing.
+  Future<void> _useRecentSearch(Map<String, dynamic> entry) async {
+    final stops = await _repository.getAllStops();
+    StopModel? findById(String? id) {
+      if (id == null) return null;
+      for (final stop in stops) {
+        if (stop.id == id) return stop;
+      }
+      return null;
+    }
+
+    final from = findById(entry['fromId'] as String?);
+    if (from == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('That stop is no longer available.')),
+      );
+      return;
+    }
+    final to = findById(entry['toId'] as String?);
+
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SearchResultsPlaceholder(
+          fromStop: from,
+          toStop: to,
           repository: _repository,
         ),
       ),
@@ -92,60 +177,135 @@ class _HomeViewState extends State<_HomeView> {
         centerTitle: false,
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Where are you headed?',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  border: Border.all(color: AppColors.surfaceBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Find your bus',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    const Text(
+                      'Pick where you are starting from',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 13),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    _StopField(
+                      label: 'From',
+                      value: _fromStop?.name,
+                      icon: Icons.trip_origin,
+                      onTap: _pickFromStop,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _StopField(
+                      label: 'To (optional)',
+                      value: _toStop?.name,
+                      icon: Icons.place_outlined,
+                      onTap: _pickToStop,
+                      onClear: _toStop != null ? _clearToStop : null,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      width: double.infinity,
+                      height: kMinTouchTarget,
+                      child: ElevatedButton(
+                        onPressed: canSearch ? _search : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.surface,
+                          disabledBackgroundColor: AppColors.surfaceBorder,
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                            BorderRadius.circular(AppRadius.button),
+                          ),
+                        ),
+                        child: const Text(
+                          'Search buses',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    if (!canSearch) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      const Text(
+                        'Pick a From stop to continue.',
+                        style: TextStyle(
+                            color: AppColors.textSecondary, fontSize: 13),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
-              _StopField(
-                label: 'From',
-                value: _fromStop?.name,
-                icon: Icons.trip_origin,
-                onTap: _pickFromStop,
-              ),
               const SizedBox(height: AppSpacing.md),
-              _StopField(
-                label: 'To (optional)',
-                value: _toStop?.name,
-                icon: Icons.place_outlined,
-                onTap: _pickToStop,
-                onClear: _toStop != null ? _clearToStop : null,
-              ),
-              const SizedBox(height: AppSpacing.xl),
               SizedBox(
                 width: double.infinity,
                 height: kMinTouchTarget,
-                child: ElevatedButton(
-                  onPressed: canSearch ? _search : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.surface,
-                    disabledBackgroundColor: AppColors.surfaceBorder,
+                child: OutlinedButton.icon(
+                  onPressed: _openAllRoutes,
+                  icon: const Icon(Icons.list_alt_outlined),
+                  label: const Text('Browse all routes'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.surfaceBorder),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.button),
                     ),
                   ),
-                  child: const Text(
-                    'Search buses',
-                    style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
                 ),
               ),
-              if (!canSearch) ...[
-                const SizedBox(height: AppSpacing.sm),
+              if (_recentSearches.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
                 const Text(
-                  'Pick a From stop to continue.',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  'RECENT',
+                  style: TextStyle(
+                      color: AppColors.textTertiary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
                 ),
+                ..._recentSearches.map((entry) {
+                  final label = entry['toName'] != null
+                      ? '${entry['fromName']} to ${entry['toName']}'
+                      : 'From ${entry['fromName']}';
+                  return InkWell(
+                    onTap: () => _useRecentSearch(entry),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.sm),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.history,
+                              color: AppColors.accent, size: 18),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(label,
+                              style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 14)),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
               ],
             ],
           ),
@@ -157,12 +317,6 @@ class _HomeViewState extends State<_HomeView> {
 
 /// One tappable row that opens the Stop Picker. Shows the picked
 /// stop's name once selected, or a placeholder before that.
-///
-/// [onClear] is optional. When provided (non-null), a small "x"
-/// button appears at the trailing edge instead of the chevron, and
-/// tapping it calls [onClear] without reopening the Stop Picker.
-/// Leave it null for fields where the value cannot be cleared, like
-/// "From", which is required.
 class _StopField extends StatelessWidget {
   const _StopField({
     required this.label,
