@@ -7,6 +7,7 @@ import 'core/presentation/splash_screen.dart';
 import 'features/search/presentation/home_page.dart';
 import 'features/admin/presentation/admin_login_screen.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
