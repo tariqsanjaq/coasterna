@@ -4,6 +4,7 @@ import '../../../core/models/stop_model.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/route_repository.dart';
 import 'widgets/route_status_badge.dart';
+import '../../trip/presentation/trip_details_screen.dart';
 
 /// Artboard 4 - Search Results.
 class SearchResultsPlaceholder extends StatefulWidget {
@@ -49,7 +50,7 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
       // sorting on the device costs nothing measurable.
       final now = DateTime.now();
       routes.sort(
-            (a, b) =>
+        (a, b) =>
             routeDepartureRank(a, now).compareTo(routeDepartureRank(b, now)),
       );
 
@@ -89,7 +90,7 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
             if (_state == _LoadState.loaded)
               Text(
                 '${_routes.length} ${_routes.length == 1 ? "route" : "routes"}'
-                    ' \u00B7 soonest departure first',
+                ' \u00B7 soonest departure first',
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w400,
@@ -154,7 +155,18 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           itemCount: _routes.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-          itemBuilder: (context, index) => _buildRouteCard(_routes[index]),
+          itemBuilder: (context, index) => InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => TripDetailsScreen(
+                  route: _routes[index],
+                  originStop: widget.fromStop,
+                ),
+              ),
+            ),
+            child: _buildRouteCard(_routes[index]),
+          ),
         );
     }
   }
@@ -205,7 +217,7 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
 
           Text(
             '${route.priceJD.toStringAsFixed(2)} JD'
-                ' \u00B7 about ${route.durationMinutes} min',
+            ' \u00B7 about ${route.durationMinutes} min',
             style: AppTextStyles.monoData(fontSize: 13.5),
           ),
           const SizedBox(height: AppSpacing.sm),
