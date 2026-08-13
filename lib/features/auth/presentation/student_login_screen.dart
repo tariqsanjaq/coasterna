@@ -95,7 +95,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   const Text(
-                    'Sign in to save your searches across devices.',
+                    'Sign in to your Coasterna account, or continue as a guest.',
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: AppSpacing.lg),

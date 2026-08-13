@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/models/stop_model.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../data/route_repository.dart';
+import '../../auth/data/auth_repository.dart';
+import '../../auth/presentation/student_login_screen.dart';
 import 'all_routes_screen.dart';
 import 'search_results_placeholder.dart';
 import 'widgets/stop_picker_sheet.dart';
@@ -30,6 +32,7 @@ class _HomeViewState extends State<_HomeView> {
   static const _maxRecentSearches = 5;
 
   final RouteRepository _repository = RouteRepository();
+  final AuthRepository _authRepository = AuthRepository();
 
   StopModel? _fromStop;
   StopModel? _toStop;
@@ -164,6 +167,41 @@ class _HomeViewState extends State<_HomeView> {
     );
   }
 
+  Future<void> _signOut() async {
+    // Same confirm-before-irreversible-action pattern used for the
+    // admin sign-out button — the student loses nothing by
+    // confirming, but a stray tap should not sign anyone out.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+          'You will need to sign in again to use a saved account. '
+              'You can still search buses as a guest.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    await _authRepository.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const StudentLoginScreen()),
+          (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final canSearch = _fromStop != null;
@@ -175,6 +213,17 @@ class _HomeViewState extends State<_HomeView> {
         foregroundColor: AppColors.surface,
         title: const Text('Coasterna'),
         centerTitle: false,
+        actions: [
+          // Only a signed-in student sees this icon. A guest was
+          // never authenticated, so there is nothing to sign out of
+          // — showing the icon anyway would just confuse them.
+          if (_authRepository.currentUser != null)
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Sign out',
+              onPressed: _signOut,
+            ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
