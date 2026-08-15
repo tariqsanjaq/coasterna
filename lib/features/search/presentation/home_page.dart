@@ -168,9 +168,6 @@ class _HomeViewState extends State<_HomeView> {
   }
 
   Future<void> _signOut() async {
-    // Same confirm-before-irreversible-action pattern used for the
-    // admin sign-out button — the student loses nothing by
-    // confirming, but a stray tap should not sign anyone out.
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -214,9 +211,6 @@ class _HomeViewState extends State<_HomeView> {
         title: const Text('Coasterna'),
         centerTitle: false,
         actions: [
-          // Only a signed-in student sees this icon. A guest was
-          // never authenticated, so there is nothing to sign out of
-          // — showing the icon anyway would just confuse them.
           if (_authRepository.currentUser != null)
             IconButton(
               icon: const Icon(Icons.logout),

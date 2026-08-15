@@ -118,7 +118,13 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
     );
 
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    var opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      opened = false;
+    }
+
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open Google Maps.')),
