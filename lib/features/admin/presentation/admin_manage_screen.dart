@@ -3,11 +3,12 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/models/route_model.dart';
 import '../../search/data/route_repository.dart';
+import 'add_stop_screen.dart';
 
-/// The list of every stop (active and inactive), with a switch to
-/// toggle isActive and a button for a real, permanent delete. This
-/// widget has no Scaffold or AppBar of its own — it is embedded
-/// directly inside the Admin sidebar shell's content area.
+/// The list of every stop (active and inactive), with a button to edit
+/// it, a switch to toggle isActive, and a button for a real, permanent
+/// delete. This widget has no Scaffold or AppBar of its own — it is
+/// embedded directly inside the Admin sidebar shell's content area.
 class StopsManageList extends StatefulWidget {
   const StopsManageList({super.key});
 
@@ -29,6 +30,20 @@ class _StopsManageListState extends State<StopsManageList> {
     setState(() {
       _stopsFuture = _repository.getAllStopsForAdmin();
     });
+  }
+
+  /// Opens the stop form in EDIT mode. AddStopScreen pops with `true`
+  /// only when a save actually succeeded, so we reload the list only
+  /// then — cancelling or backing out leaves the list untouched.
+  Future<void> _edit(StopModel stop) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => AddStopScreen(existingStop: stop),
+      ),
+    );
+    if (saved == true) {
+      _reload();
+    }
   }
 
   Future<void> _toggle(StopModel stop, bool value) async {
@@ -162,6 +177,14 @@ class _StopsManageListState extends State<StopsManageList> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: AppColors.primary,
+                      ),
+                      tooltip: 'Edit stop',
+                      onPressed: () => _edit(stop),
+                    ),
                     Switch(
                       value: stop.isActive,
                       activeThumbColor: AppColors.accent,

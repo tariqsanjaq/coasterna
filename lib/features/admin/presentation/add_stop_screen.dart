@@ -3,17 +3,28 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/models/stop_model.dart';
 import '../../search/data/route_repository.dart';
 
-/// Admin form to create one new document in the `stops` collection.
-/// Writes go through RouteRepository.createStop — this widget never
-/// calls Firestore directly (same rule as every other screen).
+/// Admin form for the `stops` collection. One screen, two modes:
+///
+///  * ADD mode    — AddStopScreen()                creates a new document
+///  * EDIT mode   — AddStopScreen(existingStop: s) overwrites document s
+///
+/// Both modes go through RouteRepository — this widget never calls
+/// Firestore directly (same rule as every other screen).
+///
+/// In EDIT mode the screen pops with `true` after a successful save, so
+/// the list that opened it knows to reload itself.
 class AddStopScreen extends StatefulWidget {
-  const AddStopScreen({super.key});
+  const AddStopScreen({super.key, this.existingStop});
+
+  /// null  => add a new stop.
+  /// not null => edit this stop.
+  final StopModel? existingStop;
 
   @override
-  State createState() => _AddStopScreenState();
+  State<AddStopScreen> createState() => _AddStopScreenState();
 }
 
-class _AddStopScreenState extends State {
+class _AddStopScreenState extends State<AddStopScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _areaController = TextEditingController();
@@ -25,6 +36,25 @@ class _AddStopScreenState extends State {
 
   final _repository = RouteRepository();
 
+  /// True when the screen was opened to change an existing document.
+  bool get _isEditMode => widget.existingStop != null;
+
+  @override
+  void initState() {
+    super.initState();
+    // In edit mode the form opens already filled with the stop's
+    // current values, so the admin changes one field instead of
+    // retyping all five.
+    final stop = widget.existingStop;
+    if (stop != null) {
+      _nameController.text = stop.name;
+      _areaController.text = stop.area;
+      _latController.text = stop.latitude.toString();
+      _lngController.text = stop.longitude.toString();
+      _isActive = stop.isActive;
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -34,7 +64,7 @@ class _AddStopScreenState extends State {
     super.dispose();
   }
 
-  Future _save() async {
+  Future<void> _save() async {
     // Runs every field's validator (below). If any returns a non-null
     // string, validate() shows it under that field and returns false —
     // we stop here instead of writing bad data to Firestore.
@@ -47,13 +77,33 @@ class _AddStopScreenState extends State {
 
     try {
       final stop = StopModel(
-        id: '', // ignored by toFirestore() — Firestore assigns the real id
+        // In add mode the id is ignored by toFirestore() — Firestore
+        // assigns the real one. In edit mode we keep the existing id
+        // so the object stays consistent, but the id that actually
+        // decides which document is written is the one passed to
+        // updateStop() below.
+        id: widget.existingStop?.id ?? '',
         name: _nameController.text.trim(),
         area: _areaController.text.trim(),
         latitude: double.parse(_latController.text.trim()),
         longitude: double.parse(_lngController.text.trim()),
         isActive: _isActive,
       );
+
+      if (_isEditMode) {
+        await _repository.updateStop(widget.existingStop!.id, stop);
+
+        if (!mounted) return;
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('"${stop.name}" updated.')),
+        );
+        // Hand `true` back to the list so it reloads and shows the
+        // new values immediately.
+        Navigator.of(context).pop(true);
+        return;
+      }
+
       final newId = await _repository.createStop(stop);
 
       if (!mounted) return;
@@ -113,14 +163,14 @@ class _AddStopScreenState extends State {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Add Stop'),
+        title: Text(_isEditMode ? 'Edit Stop' : 'Add Stop'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.xl),
             child: Form(
               key: _formKey,
@@ -128,6 +178,30 @@ class _AddStopScreenState extends State {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Renaming a stop does not rewrite the copies of its
+                  // name already stored on route documents. The admin
+                  // has to be told, or the data drifts silently.
+                  if (_isEditMode) ...[
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(color: AppColors.surfaceBorder),
+                      ),
+                      child: const Text(
+                        'Changing the Name does not rename this stop on '
+                            'routes that already use it. Update those '
+                            'routes as well, or their cards will keep '
+                            'showing the old name.',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(labelText: 'Name'),
@@ -183,7 +257,7 @@ class _AddStopScreenState extends State {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       )
-                          : const Text('Save Stop'),
+                          : Text(_isEditMode ? 'Update Stop' : 'Save Stop'),
                     ),
                   ),
                 ],

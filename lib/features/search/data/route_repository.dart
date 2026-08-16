@@ -70,6 +70,28 @@ class RouteRepository {
     return docRef.id;
   }
 
+  /// Overwrites the editable fields of an existing stop document.
+  /// Satisfies the "update" half of FR-07.
+  ///
+  /// Uses update(), not set(): update() fails with a not-found error
+  /// if [stopId] no longer exists, while set() would silently create a
+  /// brand-new document with that ID. Failing loudly is correct here —
+  /// a stop the admin is editing must already exist.
+  ///
+  /// IMPORTANT — denormalisation: routes store originStopName and
+  /// destinationStopName as copies of the stop's name, so that a
+  /// search costs one query. Renaming a stop here does NOT rewrite
+  /// those copies; the route cards keep showing the old name until an
+  /// admin edits the route as well. This is a deliberate MVP
+  /// simplification, logged for Ch.7 Future Work alongside the
+  /// referential-integrity check in deleteStop.
+  Future<void> updateStop(String stopId, StopModel stop) async {
+    await _firestore
+        .collection('stops')
+        .doc(stopId)
+        .update(stop.toFirestore());
+  }
+
   /// Returns EVERY stop regardless of isActive, for the Admin
   /// management list. Do NOT use this for student-facing search —
   /// use getAllStops() there, which already filters to isActive only.
