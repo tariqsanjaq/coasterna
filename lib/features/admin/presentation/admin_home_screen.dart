@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/models/stop_model.dart';
 import 'admin_manage_screen.dart';
 import 'admin_login_screen.dart';
+import 'add_stop_screen.dart';
+import 'add_route_screen.dart';
 
 /// Landing screen after a successful admin sign-in.
 ///
-/// Rebuilt to match spec v8.7 pages 17 and 18: a persistent navy
-/// sidebar holding exactly three items — Routes, Stops, Sign out —
-/// beside a content area that swaps in place.
+/// Built to spec v8.7 pages 17, 18 and 19: a persistent navy sidebar
+/// holding exactly three items — Routes, Stops, Sign out — beside a
+/// content area that swaps in place.
 ///
-/// The "Overview" section was removed (decision D4, 2026-08-16): it
-/// does not exist in the approved design. The two quick-add actions it
-/// carried now live as "+ Add route" and "+ Add stop" buttons in the
-/// headers of their own lists, which is where the spec puts "+ Add
-/// route" on page 17.
+/// The forms are panels inside that content area, not separate
+/// screens, which is why the sidebar stays visible while a route or a
+/// stop is being entered. This screen owns which panel is showing;
+/// the lists and the forms only report events back to it.
+///
+/// "Overview" was removed (decision D4, 2026-08-16): it does not exist
+/// in the approved design. Its two quick-add actions became the
+/// "+ Add route" and "+ Add stop" buttons in the list headers.
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
 
@@ -22,13 +28,51 @@ class AdminHomeScreen extends StatefulWidget {
   State<AdminHomeScreen> createState() => _AdminHomeScreenState();
 }
 
+/// Which sidebar item is selected.
 enum _AdminSection { routes, stops }
 
+/// What the content area is showing right now.
+enum _AdminView { list, stopForm, routeForm }
+
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
-  // Routes first, matching the spec, where Routes is the selected
-  // item on the first admin page.
+  // Routes first, matching the spec, where Routes is the selected item
+  // on the first admin page.
   _AdminSection _section = _AdminSection.routes;
+  _AdminView _view = _AdminView.list;
+
+  /// The stop being edited. null in add mode.
+  StopModel? _editingStop;
+
+  /// Bumped after every successful save. It goes into the list's key,
+  /// which makes Flutter build a brand-new list State — so initState
+  /// runs again and the data is re-fetched. Without this the list
+  /// would come back holding the Future it resolved before the edit,
+  /// and the row would still show the old values.
+  int _reloadToken = 0;
+
   bool _isSigningOut = false;
+
+  void _openStopForm({StopModel? stop}) {
+    setState(() {
+      _editingStop = stop;
+      _view = _AdminView.stopForm;
+    });
+  }
+
+  void _openRouteForm() {
+    setState(() {
+      _view = _AdminView.routeForm;
+    });
+  }
+
+  /// Back to the list. [reload] is true only after a successful save.
+  void _closeForm({required bool reload}) {
+    setState(() {
+      _view = _AdminView.list;
+      _editingStop = null;
+      if (reload) _reloadToken++;
+    });
+  }
 
   Future<void> _signOut() async {
     final confirmed = await showDialog<bool>(
@@ -73,18 +117,49 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             _Sidebar(
               selected: _section,
               isSigningOut: _isSigningOut,
-              onSelect: (section) => setState(() => _section = section),
+              // Changing section always leaves an open form. Keeping a
+              // half-typed form alive behind a sidebar click would let
+              // the admin lose work without ever being asked.
+              onSelect: (section) => setState(() {
+                _section = section;
+                _view = _AdminView.list;
+                _editingStop = null;
+              }),
               onSignOut: _signOut,
             ),
-            Expanded(
-              child: _section == _AdminSection.routes
-                  ? const RoutesManageList()
-                  : const StopsManageList(),
-            ),
+            Expanded(child: _buildContent()),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildContent() {
+    switch (_view) {
+      case _AdminView.stopForm:
+        return StopFormPanel(
+          existingStop: _editingStop,
+          onSaved: () => _closeForm(reload: true),
+          onCancel: () => _closeForm(reload: false),
+        );
+      case _AdminView.routeForm:
+        return RouteFormPanel(
+          onSaved: () => _closeForm(reload: true),
+          onCancel: () => _closeForm(reload: false),
+        );
+      case _AdminView.list:
+        if (_section == _AdminSection.routes) {
+          return RoutesManageList(
+            key: ValueKey('routes-$_reloadToken'),
+            onAddRoute: _openRouteForm,
+          );
+        }
+        return StopsManageList(
+          key: ValueKey('stops-$_reloadToken'),
+          onAddStop: () => _openStopForm(),
+          onEditStop: (stop) => _openStopForm(stop: stop),
+        );
+    }
   }
 }
 
@@ -178,12 +253,10 @@ class _SidebarItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.card),
           onTap: onTap,
           child: Container(
-            // Spec: minimum touch target 48 x 48.
+            // Spec page 3: minimum touch target 48 x 48.
             constraints: const BoxConstraints(minHeight: kMinTouchTarget),
             alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Text(
               label,
               style: TextStyle(

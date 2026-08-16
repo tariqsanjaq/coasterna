@@ -3,8 +3,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/models/route_model.dart';
 import '../../search/data/route_repository.dart';
-import 'add_stop_screen.dart';
-import 'add_route_screen.dart';
 
 // Spec v8.7 page 3, colour tokens. Declared locally so this file does
 // not depend on token names that may not exist in app_theme.dart yet.
@@ -501,7 +499,17 @@ class _StopsData {
 /// the admin has to see which ones are, and the "..." menu, which is
 /// the spec's own row-action pattern from page 17.
 class StopsManageList extends StatefulWidget {
-  const StopsManageList({super.key});
+  const StopsManageList({
+    super.key,
+    required this.onAddStop,
+    required this.onEditStop,
+  });
+
+  /// The Admin shell owns navigation now: the forms open as panels in
+  /// the same content area, so this list asks the shell to swap the
+  /// panel instead of pushing a route itself.
+  final VoidCallback onAddStop;
+  final ValueChanged<StopModel> onEditStop;
 
   @override
   State<StopsManageList> createState() => _StopsManageListState();
@@ -538,20 +546,6 @@ class _StopsManageListState extends State<StopsManageList> {
           (counts[route.destinationStopId] ?? 0) + 1;
     }
     return _StopsData(stops: stops, routeCounts: counts);
-  }
-
-  Future<void> _add() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddStopScreen()),
-    );
-    _reload();
-  }
-
-  Future<void> _edit(StopModel stop) async {
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => AddStopScreen(existingStop: stop)),
-    );
-    if (saved == true) _reload();
   }
 
   Future<void> _toggle(StopModel stop) async {
@@ -614,7 +608,7 @@ class _StopsManageListState extends State<StopsManageList> {
                   ? 'Loading...'
                   : '${stops.length} stops \u00B7 $areas areas',
               actionLabel: '+ Add stop',
-              onAction: _add,
+              onAction: widget.onAddStop,
             ),
             Expanded(child: _buildBody(snapshot)),
           ],
@@ -664,7 +658,7 @@ class _StopsManageListState extends State<StopsManageList> {
               _StatusPill(isActive: stop.isActive, flex: 2),
               _RowMenu(
                 isActive: stop.isActive,
-                onEdit: () => _edit(stop),
+                onEdit: () => widget.onEditStop(stop),
                 onToggleActive: () => _toggle(stop),
                 onDelete: () => _delete(stop),
                 deleteLabel: 'Delete stop',
@@ -687,7 +681,10 @@ class _StopsManageListState extends State<StopsManageList> {
 /// The menu deliberately has no Edit entry: an edit form for routes has
 /// not been built. A dead Edit item would be worse than leaving it out.
 class RoutesManageList extends StatefulWidget {
-  const RoutesManageList({super.key});
+  const RoutesManageList({super.key, required this.onAddRoute});
+
+  /// Same reason as StopsManageList: the shell opens the form panel.
+  final VoidCallback onAddRoute;
 
   @override
   State<RoutesManageList> createState() => _RoutesManageListState();
@@ -707,13 +704,6 @@ class _RoutesManageListState extends State<RoutesManageList> {
     setState(() {
       _future = _repository.getAllRoutesForAdmin();
     });
-  }
-
-  Future<void> _add() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddRouteScreen()),
-    );
-    _reload();
   }
 
   Future<void> _toggle(RouteModel route) async {
@@ -777,7 +767,7 @@ class _RoutesManageListState extends State<RoutesManageList> {
                   ? 'Loading...'
                   : '${routes.length} routes \u00B7 $operators operators',
               actionLabel: '+ Add route',
-              onAction: _add,
+              onAction: widget.onAddRoute,
             ),
             Expanded(child: _buildBody(snapshot)),
           ],
