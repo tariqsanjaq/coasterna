@@ -51,6 +51,7 @@ outside.
 | SR-09 | `match /admins` allow read: if false | ANON | get | /admins/fx53osBbW7g4gAHN4TICcwWPwS62 | Denied | Denied | Pass |
 | SR-10 | `match /admins` denies even the owner | ADMIN | get | /admins/fx53osBbW7g4gAHN4TICcwWPwS62 | Denied | Denied | Pass |
 | SR-11 | default-deny catch-all | ADMIN | create | /feedback/testDoc | Denied | Denied | Pass |
+| SR-12 | `match /stops` allow write: if isAdmin() — update branch opened by the FR-07 Edit Stop form (added 2026-08-16) | ADMIN | update | /stops/WooBhsKHE98E7npzXhya | Allowed | Allowed | Pass |
 
 ---
 
@@ -70,6 +71,16 @@ unreadable from any client. This is why SR-07 can succeed while SR-10 is denied.
 **SR-11** proves the catch-all. Any collection added later is closed until rules are
 written for it deliberately.
 
+**SR-12** was added on 2026-08-16, one day after the initial verification pass.
+The ADMIN update path on /stops did not exist in the application when SR-01
+through SR-11 were tested: the Edit Stop form and its corresponding
+updateStop() function in route_repository.dart were introduced afterward as
+part of FR-07. The rule allow write: if isAdmin(); on /stops covers create,
+update, and delete as a single branch, so the update path was already
+protected by rules already verified through SR-05 (write denial for
+STUDENT); SR-12 exercises that same branch directly for ADMIN once the
+application actually started issuing update requests.
+
 ---
 
 ## Issues found
@@ -86,10 +97,10 @@ untouched.
 
 ## Sign-off
 
-| Item | Value |
-|---|---|
-| Verification performed by | Abdallah Abufara |
-| Date | 2026-08-15 |
+| Item | Value                            |
+|---|----------------------------------|
+| Verification performed by | Abdallah Abufara                 |
+| Date | 2026-08-18                       |
 | Rules version tested | published rules as of 2026-08-15 |
-| Cases passed | 11 / 11 |
-| Cases failed | 0 / 11 |
+| Cases passed | 12 / 12 |                         |
+| Cases failed | 0 / 12 |                    |
