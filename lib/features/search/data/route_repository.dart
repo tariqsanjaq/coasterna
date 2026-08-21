@@ -103,6 +103,35 @@ class RouteRepository {
     return docRef.id;
   }
 
+  /// Overwrites one existing document in `routes`.
+  ///
+  /// Uses update() rather than set(): update() fails if the document
+  /// has been deleted by another admin in the meantime, which is the
+  /// correct outcome. set() would silently recreate a route somebody
+  /// deliberately removed, and nothing would ever report that it had.
+  ///
+  /// [route.id] is ignored on purpose. The document id is the key in
+  /// Firestore and is passed separately as [routeId]; writing it into
+  /// the body as well would leave two copies that can drift apart.
+  /// RouteModel.toFirestore() already omits it.
+  ///
+  /// DENORMALISATION NOTE — the mirror image of updateStop().
+  /// A route stores `originStopName` and `destinationStopName` as
+  /// copies of the stop names, so a student search costs one query
+  /// instead of three. Those copies are rebuilt here from whichever
+  /// StopModel the admin picked in the form, so changing a route's
+  /// origin or destination DOES correct them. The hazard runs the
+  /// other way: renaming a stop still does not rewrite the copies
+  /// held by routes that point at it. The admin is warned about that
+  /// in the stop edit form, and an automatic cascade is a Chapter 7
+  /// item.
+  Future<void> updateRoute(String routeId, RouteModel route) async {
+    await _firestore
+        .collection('routes')
+        .doc(routeId)
+        .update(route.toFirestore());
+  }
+
   /// Overwrites the editable fields of an existing stop document.
   /// Satisfies the "update" half of FR-07.
   ///
