@@ -95,20 +95,24 @@ class TripDetailsScreen extends StatefulWidget {
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   bool _showAllStops = false;
 
-  /// The full ordered timeline: the route's origin, every embedded
-  /// waypoint in order, then the route's destination. The waypoints
-  /// array only ever holds the stops IN BETWEEN — origin and
-  /// destination live in their own RouteModel fields, not as entries
-  /// in the array, so they are stitched on at each end here.
+  /// The full ordered timeline, taken straight from the route's own
+  /// `stops` array sorted by `order`.
+  ///
+  /// That array already holds the terminals: origin at order 0 and
+  /// destination last, with the waypoints in between. Nothing is
+  /// stitched on at either end. Adding originStopName and
+  /// destinationStopName around it — which this getter used to do —
+  /// drew both terminals twice on every route.
+  ///
+  /// Sorting by `order` rather than trusting the stored array order
+  /// means a document edited by hand in the Firebase Console still
+  /// renders in sequence, and it is what makes the first and last
+  /// entries reliably the two terminals for the endpoint styling.
   List<String> get _allStopNames {
-    final sortedWaypoints = [...widget.route.stops]
+    final sortedStops = [...widget.route.stops]
       ..sort((a, b) => a.order.compareTo(b.order));
 
-    return [
-      widget.route.originStopName,
-      ...sortedWaypoints.map((s) => s.stopName),
-      widget.route.destinationStopName,
-    ];
+    return sortedStops.map((s) => s.stopName).toList();
   }
 
   Future<void> _openInMaps() async {
