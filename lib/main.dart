@@ -32,6 +32,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Coasterna',
       theme: appTheme,
+        debugShowCheckedModeBanner: false,
       home: kIsWeb
           ? const AdminLoginScreen()
           : SplashScreen(
