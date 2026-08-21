@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/stop_model.dart';
+import '../../../core/models/route_model.dart';
 import 'admin_manage_screen.dart';
 import 'admin_login_screen.dart';
 import 'add_stop_screen.dart';
@@ -43,6 +44,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   /// The stop being edited. null in add mode.
   StopModel? _editingStop;
 
+  /// The route being edited. null in add mode. Both forms follow the
+  /// same shape: one widget, one nullable "existing" object, and this
+  /// screen deciding which mode it opens in.
+  RouteModel? _editingRoute;
+
   /// Bumped after every successful save. It goes into the list's key,
   /// which makes Flutter build a brand-new list State — so initState
   /// runs again and the data is re-fetched. Without this the list
@@ -59,8 +65,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     });
   }
 
-  void _openRouteForm() {
+  void _openRouteForm({RouteModel? route}) {
     setState(() {
+      _editingRoute = route;
       _view = _AdminView.routeForm;
     });
   }
@@ -70,6 +77,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     setState(() {
       _view = _AdminView.list;
       _editingStop = null;
+      _editingRoute = null;
       if (reload) _reloadToken++;
     });
   }
@@ -124,6 +132,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 _section = section;
                 _view = _AdminView.list;
                 _editingStop = null;
+                _editingRoute = null;
               }),
               onSignOut: _signOut,
             ),
@@ -144,6 +153,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         );
       case _AdminView.routeForm:
         return RouteFormPanel(
+          // A ValueKey on the route id forces a fresh State when the
+          // admin closes one route and opens another. Without it the
+          // panel would keep the first route's controllers, and the
+          // second route would open showing the first one's values.
+          key: ValueKey('route-form-${_editingRoute?.id ?? 'new'}'),
+          existingRoute: _editingRoute,
           onSaved: () => _closeForm(reload: true),
           onCancel: () => _closeForm(reload: false),
         );
@@ -151,7 +166,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         if (_section == _AdminSection.routes) {
           return RoutesManageList(
             key: ValueKey('routes-$_reloadToken'),
-            onAddRoute: _openRouteForm,
+            onAddRoute: () => _openRouteForm(),
+            onEditRoute: (route) => _openRouteForm(route: route),
           );
         }
         return StopsManageList(
