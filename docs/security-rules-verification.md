@@ -91,7 +91,7 @@ untouched.
 
 | ID | Expected | Actual | Reported to |
 |---|---|---|---|
-| — | — | — | No discrepancies found. All 11 cases matched their expected outcome. |
+| — | — | — | No discrepancies found. All 12 cases matched their expected outcome. |
 
 ---
 
