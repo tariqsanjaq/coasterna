@@ -136,7 +136,9 @@ class _HomeViewState extends State<_HomeView> {
   // list and match by ID. If a stop was deleted or deactivated since
   // the search was saved, we tell the student instead of crashing.
   Future<void> _useRecentSearch(Map<String, dynamic> entry) async {
-    final stops = await _repository.getAllStops();
+    final result = await _repository.getAllStops();
+    final stops = result.data;
+
     StopModel? findById(String? id) {
       if (id == null) return null;
       for (final stop in stops) {

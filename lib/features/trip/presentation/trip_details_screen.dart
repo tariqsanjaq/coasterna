@@ -82,11 +82,11 @@ class TripDetailsScreen extends StatefulWidget {
   const TripDetailsScreen({
     super.key,
     required this.route,
-    required this.originStop,
+    this.originStop, // أصبح اختيارياً
   });
 
   final RouteModel route;
-  final StopModel originStop;
+  final StopModel? originStop; // إمكانية استقبال null
 
   @override
   State<TripDetailsScreen> createState() => _TripDetailsScreenState();
@@ -112,10 +112,19 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   }
 
   Future<void> _openInMaps() async {
-    final lat = widget.originStop.latitude;
-    final lng = widget.originStop.longitude;
+    // تحديد نقطة البداية (إما الإحداثيات إذا توفرت أو اسم محطة الانطلاق)
+    final String originParam = widget.originStop != null
+        ? '${widget.originStop!.latitude},${widget.originStop!.longitude}'
+        : widget.route.originStopName;
+
+    // تحديد نقطة النهاية (اسم المحطة النهائية للمسار)
+    final String destinationParam = widget.route.destinationStopName;
+
+    // استخدام رابط الاتجاهات (dir) بدلاً من البحث الفردي (search)
     final uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+      'https://www.google.com/maps/dir/?api=1'
+          '&origin=${Uri.encodeComponent(originParam)}'
+          '&destination=${Uri.encodeComponent(destinationParam)}',
     );
 
     var opened = false;

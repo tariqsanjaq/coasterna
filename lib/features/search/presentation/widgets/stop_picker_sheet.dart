@@ -35,11 +35,18 @@ class _StopPickerSheetState extends State<StopPickerSheet> {
   Future<void> _loadStops() async {
     setState(() => _state = _LoadState.loading);
     try {
-      final stops = await widget.repository.getAllStops();
+      final result = await widget.repository.getAllStops();
       if (!mounted) return;
       setState(() {
-        _stops = stops;
-        _state = _LoadState.loaded;
+        _stops = result.data;
+
+        // An empty list from the cache means "no connection and
+        // nothing saved", not "this university has no bus stops".
+        // Without this the sheet showed "No stops match your search."
+        // to a student who simply had no signal — TC-11.
+        _state = (result.isFromCache && result.data.isEmpty)
+            ? _LoadState.error
+            : _LoadState.loaded;
       });
     } catch (_) {
       if (!mounted) return;

@@ -81,10 +81,10 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
 
   Future<void> _loadStops() async {
     try {
-      final stops = await _repository.getAllStops();
+      final result = await _repository.getAllStops();
       if (!mounted) return;
       setState(() {
-        _stops = stops;
+        _stops = result.data; // <--- هنا التعديل استخراج dataذ12
         _isLoadingStops = false;
       });
     } catch (_) {

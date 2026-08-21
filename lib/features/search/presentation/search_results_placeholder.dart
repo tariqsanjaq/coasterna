@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../data/route_repository.dart';
 import 'widgets/route_status_badge.dart';
 import '../../trip/presentation/trip_details_screen.dart';
+import '../../../core/widgets/offline_banner.dart';
 
 /// Artboard 4 - Search Results.
 class SearchResultsPlaceholder extends StatefulWidget {
@@ -30,6 +31,9 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
   _LoadState _state = _LoadState.loading;
   List<RouteModel> _routes = [];
 
+  /// See all_routes_screen.dart — same meaning.
+  bool _isOffline = false;
+
   @override
   void initState() {
     super.initState();
@@ -39,10 +43,11 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
   Future<void> _loadRoutes() async {
     setState(() => _state = _LoadState.loading);
     try {
-      final routes = await widget.repository.searchRoutesByOrigin(
+      final result = await widget.repository.searchRoutesByOrigin(
         widget.fromStop.id,
         destinationStopId: widget.toStop?.id,
       );
+      final routes = result.data;
 
       // Sorted here in the app, not in the query. Firestore would
       // need a composite index to order by a computed departure time,
@@ -50,14 +55,22 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
       // sorting on the device costs nothing measurable.
       final now = DateTime.now();
       routes.sort(
-        (a, b) =>
+            (a, b) =>
             routeDepartureRank(a, now).compareTo(routeDepartureRank(b, now)),
       );
 
       if (!mounted) return;
       setState(() {
         _routes = routes;
-        _state = routes.isEmpty ? _LoadState.empty : _LoadState.loaded;
+        _isOffline = result.isFromCache;
+
+        if (routes.isNotEmpty) {
+          _state = _LoadState.loaded;
+        } else if (result.isFromCache) {
+          _state = _LoadState.error;
+        } else {
+          _state = _LoadState.empty;
+        }
       });
     } catch (_) {
       if (!mounted) return;
@@ -90,7 +103,7 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
             if (_state == _LoadState.loaded)
               Text(
                 '${_routes.length} ${_routes.length == 1 ? "route" : "routes"}'
-                ' \u00B7 soonest departure first',
+                    ' \u00B7 soonest departure first',
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w400,
@@ -105,70 +118,77 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
   }
 
   Widget _buildBody() {
-    switch (_state) {
-      case _LoadState.loading:
-        return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        );
+    if (_state == _LoadState.loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
 
-      case _LoadState.error:
-        return Center(
+    if (_state == _LoadState.error) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off, color: AppColors.error, size: 32),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Could not load buses. Check your connection.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextButton(onPressed: _loadRoutes, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    if (_state == _LoadState.empty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.wifi_off, color: AppColors.error, size: 32),
-              const SizedBox(height: AppSpacing.sm),
-              const Text(
-                'Could not load buses. Check your connection.',
-                style: TextStyle(color: AppColors.textSecondary),
+              Image.asset('assets/images/empty_results.png', width: 240),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'No buses found from ${widget.fromStop.name} yet.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              TextButton(onPressed: _loadRoutes, child: const Text('Retry')),
             ],
           ),
-        );
+        ),
+      );
+    }
 
-      case _LoadState.empty:
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/images/empty_results.png', width: 240),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'No buses found from ${widget.fromStop.name} yet.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
+    return Column(
+      children: [
+        if (_isOffline) const OfflineBanner(),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            itemCount: _routes.length,
+            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+            itemBuilder: (context, index) => InkWell(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TripDetailsScreen(
+                    route: _routes[index],
+                    originStop: widget.fromStop,
                   ),
                 ),
-              ],
-            ),
-          ),
-        );
-
-      case _LoadState.loaded:
-        return ListView.separated(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          itemCount: _routes.length,
-          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-          itemBuilder: (context, index) => InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => TripDetailsScreen(
-                  route: _routes[index],
-                  originStop: widget.fromStop,
-                ),
               ),
+              child: _buildRouteCard(_routes[index]),
             ),
-            child: _buildRouteCard(_routes[index]),
           ),
-        );
-    }
+        ),
+      ],
+    );
   }
 
   Widget _buildRouteCard(RouteModel route) {
@@ -200,11 +220,6 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
             ],
           ),
           const SizedBox(height: AppSpacing.xs),
-
-          // The stop the student actually searched from. Matching the
-          // search origin against the intermediate waypoints stored
-          // inside the route is deferred to Chapter 7 (Future Work),
-          // so this deliberately shows the searched stop only.
           Text(
             'Board at: ${widget.fromStop.name}',
             style: const TextStyle(
@@ -214,14 +229,12 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-
           Text(
             '${route.priceJD.toStringAsFixed(2)} JD'
-            ' \u00B7 about ${route.durationMinutes} min',
+                ' \u00B7 about ${route.durationMinutes} min',
             style: AppTextStyles.monoData(fontSize: 13.5),
           ),
           const SizedBox(height: AppSpacing.sm),
-
           RouteStatusBadge(route: route),
         ],
       ),
@@ -238,9 +251,6 @@ class _DirectionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // "To AAU" is reserved for routes that actually terminate at the
-    // university. A leg that only moves the student closer to it,
-    // such as Mahes to Sweileh, must not claim to arrive there.
     final String label;
     if (route.destinationStopName.toLowerCase().contains('aau')) {
       label = 'To AAU';

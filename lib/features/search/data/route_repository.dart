@@ -1,6 +1,33 @@
+// lib/features/search/data/route_repository.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/models/route_model.dart';
 import '../../../core/models/stop_model.dart';
+
+/// A query result together with where the data actually came from.
+///
+/// Firestore keeps a copy of everything it has already downloaded on
+/// the phone. When there is no connection, get() does NOT throw an
+/// error — it quietly answers from that saved copy instead. If the
+/// saved copy is empty (fresh install, or the student cleared the app
+/// data), the result is an EMPTY list with no error at all.
+///
+/// That is why the app used to tell the student "No routes yet." while
+/// the real problem was no internet. The list was genuinely empty; the
+/// app just could not tell the two situations apart.
+///
+/// [isFromCache] is the flag that separates them. Firestore sets it on
+/// every result. The screens use it to decide between "there is
+/// nothing here" and "I cannot reach the server".
+class RepoResult<T> {
+  const RepoResult({required this.data, required this.isFromCache});
+
+  /// The rows that came back. May be empty.
+  final T data;
+
+  /// true  = answered from the phone's saved copy (offline)
+  /// false = answered by the Firestore server (online)
+  final bool isFromCache;
+}
 
 /// Reads stops and routes from Firestore. This is the ONLY class in
 /// the app allowed to call Firestore directly for this feature — no
@@ -12,13 +39,16 @@ class RouteRepository {
   final FirebaseFirestore _firestore;
 
   /// Returns every active stop, for the Stop Picker screen (artboard 3).
-  Future<List<StopModel>> getAllStops() async {
+  Future<RepoResult<List<StopModel>>> getAllStops() async {
     final snapshot = await _firestore
         .collection('stops')
         .where('isActive', isEqualTo: true)
         .get();
 
-    return snapshot.docs.map((doc) => StopModel.fromFirestore(doc)).toList();
+    return RepoResult(
+      data: snapshot.docs.map((doc) => StopModel.fromFirestore(doc)).toList(),
+      isFromCache: snapshot.metadata.isFromCache,
+    );
   }
 
   /// Returns every active route departing from [originStopId], for the
@@ -33,7 +63,7 @@ class RouteRepository {
   ///
   /// Still a single-collection query with only `==` filters, so no
   /// composite index is required — see docs/data-model.md.
-  Future<List<RouteModel>> searchRoutesByOrigin(
+  Future<RepoResult<List<RouteModel>>> searchRoutesByOrigin(
       String originStopId, {
         String? destinationStopId,
       }) async {
@@ -48,7 +78,10 @@ class RouteRepository {
 
     final snapshot = await query.get();
 
-    return snapshot.docs.map((doc) => RouteModel.fromFirestore(doc)).toList();
+    return RepoResult(
+      data: snapshot.docs.map((doc) => RouteModel.fromFirestore(doc)).toList(),
+      isFromCache: snapshot.metadata.isFromCache,
+    );
   }
 
   /// Creates a new stop document in Firestore. Firestore Security
@@ -130,12 +163,16 @@ class RouteRepository {
   /// "Browse all routes" screen. Single equality filter on isActive
   /// — same reasoning as searchRoutesByOrigin, no composite index
   /// needed.
-  Future<List<RouteModel>> getAllActiveRoutes() async {
+  Future<RepoResult<List<RouteModel>>> getAllActiveRoutes() async {
     final snapshot = await _firestore
         .collection('routes')
         .where('isActive', isEqualTo: true)
         .get();
-    return snapshot.docs.map((doc) => RouteModel.fromFirestore(doc)).toList();
+
+    return RepoResult(
+      data: snapshot.docs.map((doc) => RouteModel.fromFirestore(doc)).toList(),
+      isFromCache: snapshot.metadata.isFromCache,
+    );
   }
 
   /// Permanently deletes a stop document. This is a real delete, not
