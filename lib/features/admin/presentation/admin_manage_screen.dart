@@ -678,13 +678,25 @@ class _StopsManageListState extends State<StopsManageList> {
 /// ROUTE, OPERATOR, ORIGIN, DESTINATION, PRICE, STATUS, and a "..."
 /// row menu.
 ///
-/// The menu deliberately has no Edit entry: an edit form for routes has
-/// not been built. A dead Edit item would be worse than leaving it out.
+/// Documented spec deviation #3 is now closed: the menu carries an Edit
+/// entry, because the route edit form exists. It was left out until the
+/// form was built, on the principle that a dead menu item is worse than
+/// an absent one.
 class RoutesManageList extends StatefulWidget {
-  const RoutesManageList({super.key, required this.onAddRoute});
+  const RoutesManageList({
+    super.key,
+    required this.onAddRoute,
+    required this.onEditRoute,
+  });
 
   /// Same reason as StopsManageList: the shell opens the form panel.
   final VoidCallback onAddRoute;
+
+  /// Hands the whole RouteModel up to the shell, not just its id. The
+  /// form needs every field to pre-fill, and this list has already
+  /// fetched them — passing the id alone would mean a second read of a
+  /// document that is already in memory.
+  final ValueChanged<RouteModel> onEditRoute;
 
   @override
   State<RoutesManageList> createState() => _RoutesManageListState();
@@ -821,6 +833,7 @@ class _RoutesManageListState extends State<RoutesManageList> {
               _StatusPill(isActive: route.isActive, flex: 2),
               _RowMenu(
                 isActive: route.isActive,
+                onEdit: () => widget.onEditRoute(route),
                 onToggleActive: () => _toggle(route),
                 onDelete: () => _delete(route),
                 deleteLabel: 'Delete route',
