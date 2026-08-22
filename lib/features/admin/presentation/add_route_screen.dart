@@ -148,11 +148,11 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
   /// — the old behaviour, unchanged. No extra query, no new index.
   Future<void> _loadStops() async {
     try {
-      final all = await _repository.getAllStopsForAdmin();
+      final allStops = await _repository.getAllStopsForAdmin();
       if (!mounted) return;
 
       final existing = widget.existingRoute;
-      final visible = all
+      final visible = allStops
           .where((stop) =>
       stop.isActive ||
           stop.id == existing?.originStopId ||
@@ -265,15 +265,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
       return;
     }
 
-    // There is deliberately no guard on _selectedDays being empty.
-    // An empty operatingDays array is the documented way to record
-    // "this route runs every day" — see docs/data-model.md, and the
-    // matching assertion in test/route_status_test.dart. Requiring at
-    // least one chip made an every-day route impossible to enter and
-    // forced the admin to select all seven instead, which the trip
-    // screen then renders as "Sun to Sat" rather than "Every day",
-    // leaving two representations of one fact in the collection.
-
     setState(() {
       _isSaving = true;
       _errorMessage = null;
@@ -282,10 +273,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
     try {
       final existing = widget.existingRoute;
 
-      // The array is rebuilt from scratch on every save rather than
-      // patched. `order` is the list position, so a moved waypoint
-      // renumbers everything after it — recomputing is both simpler
-      // and impossible to get half-right.
       final stops = <RouteStop>[
         RouteStop(stopId: _origin!.id, stopName: _origin!.name, order: 0),
         for (var i = 0; i < _waypoints.length; i++)
@@ -408,10 +395,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
           const SizedBox(height: AppSpacing.md),
           AdminNoticeBanner(
             text: _isEditing
-            // A route's identity is originStopId + destinationStopId
-            // + direction. Changing either stop does not correct a
-            // mistake in this route: it turns it into a different
-            // route, which may already exist as its own document.
                 ? 'Changing the origin or destination changes which trip '
                 'this route describes. Check that no other route '
                 'already covers the new pair before saving.'
@@ -420,7 +403,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
                 'search results.',
           ),
           const SizedBox(height: AppSpacing.md),
-
           AdminFormRow(
             children: [
               AdminLabeledField(
@@ -465,7 +447,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-
           AdminFormRow(
             children: [
               AdminLabeledField(
@@ -523,7 +504,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-
           AdminFormRow(
             children: [
               AdminLabeledField(
@@ -561,7 +541,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-
           AdminFormRow(
             children: [
               AdminLabeledField(
@@ -590,11 +569,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
               ),
             ],
           ),
-
-          // Only a SCHEDULED route has a gap between buses. Asking for
-          // one on a WHEN_FULL route would invite an invented number,
-          // and the result card would then show a countdown no driver
-          // ever promised.
           if (_departureType == DepartureType.scheduled) ...[
             const SizedBox(height: AppSpacing.md),
             AdminFormRow(
@@ -613,7 +587,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
               ],
             ),
           ],
-
           const SizedBox(height: AppSpacing.lg),
           const AdminFieldLabel('Operating days'),
           Wrap(
@@ -644,7 +617,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
               color: AppColors.textSecondary,
             ),
           ),
-
           const SizedBox(height: AppSpacing.lg),
           const AdminFieldLabel('Stops'),
           const SizedBox(height: AppSpacing.xs),
@@ -673,9 +645,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
                 for (var i = 0; i < _waypoints.length; i++)
                   _StopLine(
                     text: _waypoints[i],
-                    // Disabled at the ends. A null onPressed greys the
-                    // button out, which tells the admin the move is
-                    // impossible instead of doing nothing silently.
                     onMoveUp: i == 0 ? null : () => _moveWaypoint(i, -1),
                     onMoveDown: i == _waypoints.length - 1
                         ? null
@@ -712,7 +681,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
               ],
             ),
           ),
-
           if (_errorMessage != null) ...[
             const SizedBox(height: AppSpacing.md),
             Text(
@@ -720,7 +688,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
               style: const TextStyle(color: AppColors.error, fontSize: 13),
             ),
           ],
-
           const SizedBox(height: AppSpacing.lg),
           AdminFormActions(
             leading: Row(
@@ -746,13 +713,6 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
   }
 }
 
-/// One line in the ordered stops box.
-///
-/// Origin and destination come from the dropdowns and carry no
-/// buttons: they are fixed by definition, and the first and last
-/// entries of the saved `stops` array. Only waypoints can be moved or
-/// removed, which is why every button is gated on [onRemove] being
-/// supplied.
 class _StopLine extends StatelessWidget {
   const _StopLine({
     required this.text,
