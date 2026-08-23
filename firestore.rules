@@ -1,5 +1,4 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -28,11 +27,14 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // admins: nobody can read or write this collection from the app,
-    // in either direction. Admin accounts are added manually through
-    // the Firebase Console by Tariq or Abdallah, never through the app.
+    // admins: a signed-in user may read ONLY their own admin document
+    // (used by the app to decide whether to show the Admin Dashboard).
+    // Reading anyone else's admin doc, or listing the whole collection,
+    // is still denied. Writes remain fully blocked in both directions —
+    // admin accounts are added manually through the Firebase Console by
+    // Tariq or Abdallah, never through the app.
     match /admins/{adminId} {
-      allow read: if false;
+      allow read: if request.auth != null && request.auth.uid == adminId;
       allow write: if false;
     }
 
