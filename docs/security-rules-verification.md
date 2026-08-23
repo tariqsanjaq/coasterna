@@ -95,6 +95,53 @@ untouched.
 
 ---
 
+## Round 2 — Admin Dashboard Access Gate (2026-08-23)
+
+**Context:** the Admin Dashboard had no check confirming a signed-in account was
+actually an administrator — any valid Firebase Auth account (student or admin)
+could sign in and reach the dashboard. Fixing this required the app itself to be
+able to ask "is this uid in `admins`?", which the original rule (`allow read: if
+false`) made impossible. The `admins` read rule was deliberately changed to allow
+a signed-in user to read **only their own** admin document.
+
+**⚠️ This intentionally changes the outcome of SR-10, above.** SR-10 recorded that
+an ADMIN could not read their own `/admins` document — true under the rules
+published on 2026-08-15. As of 2026-08-23, that same read is now Allowed by
+design (see SR-13 below). SR-10 is retained unmodified as a historical record of
+the previous ruleset and must not be read as describing current behaviour.
+
+**Identity used in this round**
+
+| Label | Meaning | Value used |
+|---|---|---|
+| OTHER | Any authenticated uid other than the document owner's — not a real registered account | `test123456789` |
+
+| ID | Rule branch exercised | Identity | Operation | Path | Expected | Actual | Result |
+|---|---|---|---|---|---|---|---|
+| SR-13 | `match /admins` allow read: if request.auth.uid == adminId (self-read, added 2026-08-23) | ADMIN | get | /admins/fx53osBbW7g4gAHN4TICcwWPwS62 | Allowed | Allowed | Pass |
+| SR-14 | self-read rule denies a non-matching uid | OTHER | get | /admins/fx53osBbW7g4gAHN4TICcwWPwS62 | Denied | Denied | Pass |
+| SR-15 | self-read rule denies an unauthenticated request | ANON | get | /admins/fx53osBbW7g4gAHN4TICcwWPwS62 | Denied | Denied | Pass |
+| SR-16 | `match /admins` allow write: if false — unchanged, still denies even the owner | ADMIN | create | /admins/fx53osBbW7g4gAHN4TICcwWPwS62 | Denied | Denied | Pass |
+
+**Notes:** SR-14 was tested against an arbitrary non-owner uid rather than the
+STUDENT identity defined in Round 1 — the rule's `==` comparison treats any
+non-matching uid identically, so the result generalizes to STUDENT or any other
+account. SR-16 confirms the deliberate self-read change did not weaken the
+write protection on `admins` verified in SR-10's original context.
+
+### Round 2 sign-off
+
+| Item | Value |
+|---|---|
+| Verification performed by | Abdallah Abufara |
+| Rule design & documentation | Abdallah Abufara |
+| Date | 2026-08-23 |
+| Rules version tested | published rules as of 2026-08-23 (admins self-read change) |
+| Cases passed | 4 / 4 |
+| Cases failed | 0 / 4 |
+
+---
+
 ## Sign-off
 
 | Item | Value                            |
