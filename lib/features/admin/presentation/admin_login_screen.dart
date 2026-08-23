@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/data/auth_repository.dart';
 import 'admin_home_screen.dart';
 
 /// Admin Dashboard entry point. Runs ONLY on Flutter Web — see the
-/// kIsWeb check in main.dart (Day 1, card 5). Completely separate
-/// from student authentication, which remains locked/deferred
-/// (Week 3 conditional stretch goal) and is NOT implemented here.
+/// kIsWeb check in main.dart (Day 1, card 5). Firebase Auth is shared
+/// across the whole project, so any valid student account can also
+/// authenticate here — isCurrentUserAdmin() is what actually decides
+/// whether this specific account may proceed to AdminHomeScreen.
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
 
@@ -15,6 +16,7 @@ class AdminLoginScreen extends StatefulWidget {
 }
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
+  final _authRepository = AuthRepository();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -35,33 +37,44 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // Step 1: authenticate with Firebase Auth. This succeeds for
+      // ANY valid account — student or admin — because Firebase Auth
+      // is shared across the whole project. Being authenticated is
+      // NOT the same as being an admin.
+      await _authRepository.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+
+      // Step 2: confirm this specific account is actually listed in
+      // the admins collection. This is the check that was missing.
+      final isAdmin = await _authRepository.isCurrentUserAdmin();
+
+      if (!isAdmin) {
+        // Do not leave a non-admin signed in on this device.
+        await _authRepository.signOut();
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          // Safe to be specific here: these credentials were already
+          // correct, so this message reveals nothing an attacker
+          // couldn't already learn from a valid login attempt.
+          _errorMessage =
+          'This account is not authorized for the Admin Dashboard.';
+        });
+        return;
+      }
+
       if (!mounted) return;
       setState(() => _isLoading = false);
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const AdminHomeScreen()),
       );
-    } on FirebaseAuthException catch (e) {
+    } on AuthFailure catch (e) {
       if (!mounted) return;
-      // SECURITY (Aug 2026): every login failure — bad format, wrong
-      // password, unknown account — shows the exact same message.
-      // Distinguishing them lets an attacker enumerate valid admin
-      // emails, so we deliberately collapse all FirebaseAuthException
-      // codes into one generic response. Never surface e.code to the
-      // user; it's an internal detail, not something they can act on.
       setState(() {
         _isLoading = false;
-        _errorMessage = switch (e.code) {
-          'user-not-found' ||
-          'wrong-password' ||
-          'invalid-credential' ||
-          'invalid-email' =>
-          'Incorrect email or password.',
-          _ => 'Sign-in failed. Try again.',
-        };
+        _errorMessage = e.message;
       });
     } catch (_) {
       if (!mounted) return;
