@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../auth/data/auth_repository.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/models/route_model.dart';
@@ -36,6 +36,7 @@ enum _AdminSection { routes, stops }
 enum _AdminView { list, stopForm, routeForm }
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
+  final _authRepository = AuthRepository();
   // Routes first, matching the spec, where Routes is the selected item
   // on the first admin page.
   _AdminSection _section = _AdminSection.routes;
@@ -106,7 +107,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     if (confirmed != true) return;
 
     setState(() => _isSigningOut = true);
-    await FirebaseAuth.instance.signOut();
+    await _authRepository.signOut();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
