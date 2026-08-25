@@ -51,25 +51,37 @@ class RouteRepository {
     );
   }
 
-  /// Returns every active route departing from [originStopId], for the
-  /// Search Results screen (artboard 4). Does NOT sort by next
+  /// Returns every active route that passes through [originStopId] —
+  /// as the official origin OR as any waypoint along the way — for
+  /// the Search Results screen (artboard 4). Does NOT sort by next
   /// departure — that happens later, in the presentation layer.
   ///
-  /// [destinationStopId] is optional. When the student picked a "To"
-  /// stop, pass it here and the query adds a third equality filter so
-  /// only routes matching BOTH origin and destination come back. When
-  /// null (student left "To" empty), the query behaves exactly as
-  /// before — every active route from [originStopId], any destination.
+  /// WAYPOINT-AWARE SEARCH (D38, Task #10) — this used to be a plain
+  /// `==` match on `originStopId` only. A student boarding from a
+  /// stop in the middle of the route (not the official first stop)
+  /// would get zero results, even though the bus genuinely passes
+  /// there. The fix matches against `waypointStopIds`, a derived
+  /// index field built in createRoute()/updateRoute() from
+  /// `route.stops` — see the doc comment there. `stops` itself stays
+  /// the source of truth; `waypointStopIds` exists only so Firestore
+  /// can run this array-contains query.
   ///
-  /// Still a single-collection query with only `==` filters, so no
-  /// composite index is required — see docs/data-model.md.
+  /// [destinationStopId] is optional. When the student picked a "To"
+  /// stop, pass it here and the query adds a third filter so only
+  /// routes matching both origin and destination come back. When
+  /// null (student left "To" empty), every active route touching
+  /// [originStopId] comes back, any destination.
+  ///
+  /// This now requires a composite index (arrayContains + isEqualTo
+  /// together needs one) — Firestore will reject the first live query
+  /// with a link to create it automatically. See docs/data-model.md.
   Future<RepoResult<List<RouteModel>>> searchRoutesByOrigin(
       String originStopId, {
         String? destinationStopId,
       }) async {
     Query<Map<String, dynamic>> query = _firestore
         .collection('routes')
-        .where('originStopId', isEqualTo: originStopId)
+        .where('waypointStopIds', arrayContains: originStopId)
         .where('isActive', isEqualTo: true);
 
     if (destinationStopId != null) {
@@ -84,6 +96,38 @@ class RouteRepository {
     );
   }
 
+  /// Creates a new route document in Firestore. Same admin-only
+  /// enforcement as createStop — via Security Rules, not this code.
+  ///
+  /// WAYPOINT INDEX FIELD (D38, Task #10) — `waypointStopIds` is a
+  /// derived index field: a flat list of boardable stopIds on this
+  /// route, built here from `route.stops` right before the write.
+  /// It exists ONLY so Firestore can run `array-contains` search
+  /// queries — it is never the source of truth. `route.stops` stays
+  /// the source of truth; if the two ever disagree, `stops` wins.
+  ///
+  /// FIX (Tariq code review, post-Task #10) — the FINAL stop (highest
+  /// `order`, the route's destination) is deliberately EXCLUDED here.
+  /// A student cannot board a bus at the exact stop where that bus's
+  /// journey ends — there is nowhere further for it to take them.
+  /// Including the destination made routes appear as false search
+  /// results when a student searched from their own route's final
+  /// stop (e.g. "Mahes to Sweileh" wrongly appearing when searching
+  /// from Sweileh, even though that bus terminates there). Only the
+  /// official origin and any true intermediate stops are boardable.
+  Future<String> createRoute(RouteModel route) async {
+    final sortedStops = [...route.stops]
+      ..sort((a, b) => a.order.compareTo(b.order));
+    final boardableStops = sortedStops.take(sortedStops.length - 1);
+
+    final data = {
+      ...route.toFirestore(),
+      'waypointStopIds': boardableStops.map((s) => s.stopId).toList(),
+    };
+    final docRef = await _firestore.collection('routes').add(data);
+    return docRef.id;
+  }
+
   /// Creates a new stop document in Firestore. Firestore Security
   /// Rules (not this method) enforce that only a signed-in admin can
   /// succeed here — an unauthenticated or non-admin call throws a
@@ -92,14 +136,6 @@ class RouteRepository {
   Future<String> createStop(StopModel stop) async {
     final docRef =
     await _firestore.collection('stops').add(stop.toFirestore());
-    return docRef.id;
-  }
-
-  /// Creates a new route document in Firestore. Same admin-only
-  /// enforcement as createStop — via Security Rules, not this code.
-  Future<String> createRoute(RouteModel route) async {
-    final docRef =
-    await _firestore.collection('routes').add(route.toFirestore());
     return docRef.id;
   }
 
@@ -125,11 +161,20 @@ class RouteRepository {
   /// held by routes that point at it. The admin is warned about that
   /// in the stop edit form, and an automatic cascade is a Chapter 7
   /// item.
+  ///
+  /// WAYPOINT INDEX FIELD (D38, Task #10) — same `waypointStopIds`
+  /// rebuild as createRoute, same reasoning, same FINAL-stop
+  /// exclusion (see the comment there for why).
   Future<void> updateRoute(String routeId, RouteModel route) async {
-    await _firestore
-        .collection('routes')
-        .doc(routeId)
-        .update(route.toFirestore());
+    final sortedStops = [...route.stops]
+      ..sort((a, b) => a.order.compareTo(b.order));
+    final boardableStops = sortedStops.take(sortedStops.length - 1);
+
+    final data = {
+      ...route.toFirestore(),
+      'waypointStopIds': boardableStops.map((s) => s.stopId).toList(),
+    };
+    await _firestore.collection('routes').doc(routeId).update(data);
   }
 
   /// Overwrites the editable fields of an existing stop document.
@@ -190,8 +235,8 @@ class RouteRepository {
 
   /// Returns EVERY active route regardless of origin, for the
   /// "Browse all routes" screen. Single equality filter on isActive
-  /// — same reasoning as searchRoutesByOrigin, no composite index
-  /// needed.
+  /// — same reasoning as the old searchRoutesByOrigin, no composite
+  /// index needed for this specific method.
   Future<RepoResult<List<RouteModel>>> getAllActiveRoutes() async {
     final snapshot = await _firestore
         .collection('routes')
