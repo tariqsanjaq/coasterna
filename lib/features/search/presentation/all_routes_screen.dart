@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/route_model.dart';
+import '../../../core/models/stop_model.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/offline_banner.dart';
 import '../data/route_repository.dart';
@@ -24,6 +25,14 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
   List<RouteModel> _routes = [];
   bool _isOffline = false;
 
+  /// Active stops keyed by document id, so tapping a route card can
+  /// hand TripDetailsScreen the origin StopModel — and with it the
+  /// real latitude/longitude the Google Maps link needs. Loaded once
+  /// alongside the routes, using the repository's existing
+  /// getAllStops(). The search flow already passes its own fromStop,
+  /// so this map only serves the browse flow.
+  Map<String, StopModel> _stopsById = {};
+
   @override
   void initState() {
     super.initState();
@@ -34,9 +43,24 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
     setState(() => _state = _LoadState.loading);
     try {
       final result = await widget.repository.getAllActiveRoutes();
+
+      // Read separately and deliberately tolerant: if the stops read
+      // fails, the routes list still renders and TripDetailsScreen
+      // falls back to the stop name exactly as it did before.
+      Map<String, StopModel> stopsById = {};
+      try {
+        final stopsResult = await widget.repository.getAllStops();
+        stopsById = {
+          for (final stop in stopsResult.data) stop.id: stop,
+        };
+      } catch (_) {
+        stopsById = {};
+      }
+
       if (!mounted) return;
       setState(() {
         _routes = result.data;
+        _stopsById = stopsById;
         _isOffline = result.isFromCache;
 
         if (result.data.isNotEmpty) {
@@ -115,7 +139,10 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => TripDetailsScreen(route: route),
+                      builder: (context) => TripDetailsScreen(
+                        route: route,
+                        originStop: _stopsById[route.originStopId],
+                      ),
                     ),
                   );
                 },
