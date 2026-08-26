@@ -162,9 +162,12 @@ class RouteStatusBadge extends StatelessWidget {
     if (wait != null) return _BadgeStyle.nextBus(wait);
 
     // Scheduled, inside operating hours, but frequencyMinutes is
-    // missing. Showing an invented time would mislead the student,
-    // so no badge is shown and the operating hours line stands alone.
-    return null;
+    // missing. We can't invent a wait time, so fall back to showing
+    // the operating-hours range instead of an empty card.
+    return _BadgeStyle.operatingHours(
+      formatTimeLabel(route.firstDeparture, now),
+      formatTimeLabel(route.lastDeparture, now),
+    );
   }
 }
 
@@ -205,6 +208,14 @@ class _BadgeStyle {
     border: _greenBorder,
     text: _greenText,
   );
+
+  factory _BadgeStyle.operatingHours(String first, String last) =>
+      _BadgeStyle(
+        label: '$first - $last',
+        background: _greenBackground,
+        border: _greenBorder,
+        text: _greenText,
+      );
 
   static const whenFull = _BadgeStyle(
     label: 'Departs when full',

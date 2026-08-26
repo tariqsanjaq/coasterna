@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../core/models/route_model.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/offline_banner.dart';
+import '../../trip/presentation/trip_details_screen.dart';
 import '../data/route_repository.dart';
 import 'widgets/route_status_badge.dart';
-import '../../trip/presentation/trip_details_screen.dart';
-import '../../../core/widgets/offline_banner.dart';
 
 /// Artboard 4 - Search Results.
 class SearchResultsPlaceholder extends StatefulWidget {
@@ -226,6 +226,15 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
               color: AppColors.accent,
               fontWeight: FontWeight.w600,
               fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'To: ${route.destinationStopName}',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+              fontSize: 12.5,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),

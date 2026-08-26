@@ -82,11 +82,11 @@ class TripDetailsScreen extends StatefulWidget {
   const TripDetailsScreen({
     super.key,
     required this.route,
-    this.originStop, // أصبح اختيارياً
+    this.originStop,
   });
 
   final RouteModel route;
-  final StopModel? originStop; // إمكانية استقبال null
+  final StopModel? originStop;
 
   @override
   State<TripDetailsScreen> createState() => _TripDetailsScreenState();
@@ -97,17 +97,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   /// The full ordered timeline, taken straight from the route's own
   /// `stops` array sorted by `order`.
-  ///
-  /// That array already holds the terminals: origin at order 0 and
-  /// destination last, with the waypoints in between. Nothing is
-  /// stitched on at either end. Adding originStopName and
-  /// destinationStopName around it — which this getter used to do —
-  /// drew both terminals twice on every route.
-  ///
-  /// Sorting by `order` rather than trusting the stored array order
-  /// means a document edited by hand in the Firebase Console still
-  /// renders in sequence, and it is what makes the first and last
-  /// entries reliably the two terminals for the endpoint styling.
   List<String> get _allStopNames {
     final sortedStops = [...widget.route.stops]
       ..sort((a, b) => a.order.compareTo(b.order));
@@ -116,19 +105,19 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   }
 
   Future<void> _openInMaps() async {
-    // تحديد نقطة البداية (إما الإحداثيات إذا توفرت أو اسم محطة الانطلاق)
-    final String originParam = widget.originStop != null
+    // نبني نص "query" لرابط الخرائط: إحداثيات دقيقة إذا توفرت (عند الدخول من
+    // نتائج البحث)، أو اسم المحطة كنص بحث إذا لم تتوفر الإحداثيات (عند الدخول
+    // من "Browse all routes"، حيث originStop يكون null حاليًا).
+    final String query = widget.originStop != null
         ? '${widget.originStop!.latitude},${widget.originStop!.longitude}'
         : widget.route.originStopName;
 
-    // تحديد نقطة النهاية (اسم المحطة النهائية للمسار)
-    final String destinationParam = widget.route.destinationStopName;
-
-    // استخدام رابط الاتجاهات (dir) بدلاً من البحث الفردي (search)
+    // صيغة "بحث" (دبوس واحد على الموقع) — وليس صيغة "اتجاهات". هذا يطابق
+    // الهدف الفعلي المطلوب: نُري الطالب أين تقع محطة الانطلاق، لا نحسب له
+    // طريقًا كاملًا من موقعه الحالي.
     final uri = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1'
-          '&origin=${Uri.encodeComponent(originParam)}'
-          '&destination=${Uri.encodeComponent(destinationParam)}',
+      'https://www.google.com/maps/search/?api=1'
+          '&query=${Uri.encodeComponent(query)}',
     );
 
     var opened = false;
@@ -226,10 +215,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     final names = _allStopNames;
     final lastIndex = names.length - 1;
 
-    // Collapsed view: origin, the first two waypoints, the last two
-    // waypoints, then the destination. Only offered when there is
-    // actually something to hide — a short route just lists every
-    // stop with no toggle at all.
     final canCollapse = names.length > 6;
     final visibleIndexes = (!canCollapse || _showAllStops)
         ? List<int>.generate(names.length, (i) => i)
@@ -259,12 +244,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
             _StopRow(
               name: names[visibleIndexes[i]],
               isEndpoint:
-                  visibleIndexes[i] == 0 || visibleIndexes[i] == lastIndex,
+              visibleIndexes[i] == 0 || visibleIndexes[i] == lastIndex,
               isLast: i == visibleIndexes.length - 1,
             ),
-            // The "Show all N stops" toggle sits right after the
-            // third visible row (the last row before the gap),
-            // matching the approved design exactly.
             if (canCollapse && !_showAllStops && i == 2)
               Padding(
                 padding: const EdgeInsets.only(left: 18, top: 2, bottom: 6),
@@ -324,10 +306,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   }
 }
 
-/// One row inside the stops timeline: a dot connected by a vertical
-/// line, and the stop's name. Origin and destination are drawn
-/// bolder with a filled dot so the route's two ends stand out from
-/// the stops in between, matching the approved design.
 class _StopRow extends StatelessWidget {
   const _StopRow({
     required this.name,
@@ -359,8 +337,7 @@ class _StopRow extends StatelessWidget {
               ),
               if (!isLast)
                 Expanded(
-                  child:
-                      Container(width: 1.5, color: AppColors.surfaceBorder),
+                  child: Container(width: 1.5, color: AppColors.surfaceBorder),
                 ),
             ],
           ),
@@ -382,7 +359,6 @@ class _StopRow extends StatelessWidget {
   }
 }
 
-/// One "label ....... value" line inside the details card.
 class _DetailRow extends StatelessWidget {
   const _DetailRow(this.label, this.value, {this.isLast = false});
 
