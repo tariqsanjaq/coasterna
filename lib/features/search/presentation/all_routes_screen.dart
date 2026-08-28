@@ -131,7 +131,7 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
           child: ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.lg),
             itemCount: _routes.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
             itemBuilder: (context, index) {
               final route = _routes[index];
               return InkWell(

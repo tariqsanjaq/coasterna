@@ -131,7 +131,7 @@ class _StopPickerSheetState extends State<StopPickerSheet> {
         return ListView.separated(
           controller: scrollController,
           itemCount: filtered.length,
-          separatorBuilder: (_, __) =>
+          separatorBuilder: (_, _) =>
           const Divider(height: 1, color: AppColors.surfaceBorder),
           itemBuilder: (context, index) {
             final stop = filtered[index];

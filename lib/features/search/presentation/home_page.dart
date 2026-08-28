@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/models/stop_model.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../about/presentation/about_page.dart';
 import '../data/route_repository.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/student_login_screen.dart';
@@ -213,7 +214,28 @@ class _HomeViewState extends State<_HomeView> {
         title: const Text('Coasterna'),
         centerTitle: false,
         actions: [
-          if (_authRepository.currentUser != null)
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'About',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AboutPage()),
+              );
+            },
+          ),
+          if (_authRepository.currentUser == null)
+            IconButton(
+              icon: const Icon(Icons.lock_outline),
+              tooltip: 'Sign in',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const StudentLoginScreen()),
+                );
+              },
+            )
+          else
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'Sign out',

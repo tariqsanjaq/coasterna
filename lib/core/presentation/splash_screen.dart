@@ -56,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen> {
             borderRadius: BorderRadius.circular(AppRadius.card),
           ),
           child: Image.asset(
-            'assets/images/coasterna_logo.png',
+            'assets/images/icon.png',
             width: 140,
           ),
         ),

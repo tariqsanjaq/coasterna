@@ -233,7 +233,7 @@ class AdminFormActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        if (leading != null) leading!,
+        ?leading,
         const Spacer(),
         TextButton(
           onPressed: isSaving ? null : onCancel,
