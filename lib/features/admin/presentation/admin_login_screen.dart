@@ -115,7 +115,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     borderRadius: BorderRadius.circular(AppRadius.card),
                     border: Border.all(color: AppColors.surfaceBorder),
                   ),
-                  child: Image.asset('assets/images/icon.png'),
+                  child: Image.asset('assets/icon/icon.png'),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 const Text(

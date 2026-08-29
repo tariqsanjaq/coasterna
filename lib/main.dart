@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/splash/prsentation/splash_screen.dart';
+import 'features/admin/presentation/admin_login_screen.dart';
+import 'features/splash/presentation/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,15 +23,10 @@ class CoasternaApp extends StatelessWidget {
     return MaterialApp(
       title: 'Coasterna',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.background,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          primary: AppColors.primary,
-        ),
-      ),
-      home: const SplashScreen(),
+      theme: appTheme,
+      // The Admin Dashboard is web-only: on web the app opens straight
+      // on the admin login gate, on mobile it opens the student splash.
+      home: kIsWeb ? const AdminLoginScreen() : const SplashScreen(),
     );
   }
 }
