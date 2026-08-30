@@ -109,9 +109,20 @@ int routeDepartureRank(RouteModel route, DateTime now) {
 /// telling the student at a glance whether this bus runs today and
 /// when it leaves. Implements all five states of the approved design.
 class RouteStatusBadge extends StatelessWidget {
-  const RouteStatusBadge({super.key, required this.route});
+  const RouteStatusBadge({
+    super.key,
+    required this.route,
+    this.showWhenFullDetail = false,
+  });
 
   final RouteModel route;
+
+  /// Opt-in to the longer "Departs when full - no fixed time" wording
+  /// for the amber WHEN_FULL state. Defaults to false because the
+  /// certified spec shows the short form on Search Results (page 7)
+  /// and the long form only on All Routes (page 14). No other state
+  /// is affected by this flag.
+  final bool showWhenFullDetail;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +156,9 @@ class RouteStatusBadge extends StatelessWidget {
     if (!routeRunsToday(route, now)) return _BadgeStyle.noService;
 
     if (route.departureType != DepartureType.scheduled) {
-      return _BadgeStyle.whenFull;
+      return showWhenFullDetail
+          ? _BadgeStyle.whenFullDetailed
+          : _BadgeStyle.whenFull;
     }
 
     final first = parseTimeOnDay(route.firstDeparture, now);
@@ -219,6 +232,15 @@ class _BadgeStyle {
 
   static const whenFull = _BadgeStyle(
     label: 'Departs when full',
+    background: _amberBackground,
+    border: _amberBorder,
+    text: _amberText,
+  );
+
+  /// Same state and same colours as [whenFull], only spelled out in
+  /// full. Selected by RouteStatusBadge.showWhenFullDetail.
+  static const whenFullDetailed = _BadgeStyle(
+    label: 'Departs when full - no fixed time',
     background: _amberBackground,
     border: _amberBorder,
     text: _amberText,

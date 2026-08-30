@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/offline_banner.dart';
 import '../data/route_repository.dart';
 import '../../trip/presentation/trip_details_screen.dart';
+import 'widgets/route_status_badge.dart';
 
 /// Browse screen — lists every active route without requiring the
 /// student to pick a "From" stop first. Reached from Home via the
@@ -19,6 +20,14 @@ class AllRoutesScreen extends StatefulWidget {
 }
 
 enum _LoadState { loading, loaded, empty, error }
+
+/// Pill backgrounds for the frequency label, copied by value from
+/// _BadgeStyle in widgets/route_status_badge.dart so the two chips on
+/// a card read as one family. They are duplicated rather than
+/// imported because _BadgeStyle's colours are private to that file,
+/// which this task must leave untouched.
+const Color _frequencyGreenBackground = Color(0xFFE9F4EA);
+const Color _frequencyAmberBackground = Color(0xFFFDF4E0);
 
 class _AllRoutesScreenState extends State<AllRoutesScreen> {
   _LoadState _state = _LoadState.loading;
@@ -82,9 +91,38 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.surface,
-        title: const Text('All routes'),
+        backgroundColor: AppColors.background,
+        // Navy title + back arrow on the plain background, per spec
+        // page 14. Only the foreground changes here — the background
+        // stays AppColors.background.
+        foregroundColor: AppColors.primary,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleSpacing: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'All routes',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+            if (_state == _LoadState.loaded)
+              Text(
+                '${_routes.length} active'
+                    ' ${_routes.length == 1 ? "route" : "routes"}',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+          ],
+        ),
       ),
       body: SafeArea(child: _buildBody()),
     );
@@ -146,59 +184,157 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
                     ),
                   );
                 },
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: AppColors.surfaceBorder),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        route.routeName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        '${route.originStopName} -> ${route.destinationStopName}',
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            route.departureType == DepartureType.scheduled
-                                ? '${route.firstDeparture} - ${route.lastDeparture}'
-                                : 'Departs when full',
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 13,
-                            ),
-                          ),
-                          Text(
-                            '${route.priceJD.toStringAsFixed(2)} JD',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                child: _buildRouteCard(route),
               );
             },
           ),
         ),
       ],
+    );
+  }
+
+  /// One route card, matching page 14 of the certified spec: name,
+  /// operator and duration on the left; price chip and frequency
+  /// pill on the right; a content-width status chip along the bottom.
+  Widget _buildRouteCard(RouteModel route) {
+    final frequencyLabel = _buildFrequencyLabel(route);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.surfaceBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  route.routeName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
+                  border: Border.all(color: AppColors.primary, width: 1.5),
+                ),
+                child: Text(
+                  '${route.priceJD.toStringAsFixed(2)} JD',
+                  style: AppTextStyles.monoData(fontSize: 13.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  _subtitleFor(route),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const SizedBox.shrink(),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  '${route.durationMinutes} min',
+                  style: AppTextStyles.monoData(fontSize: 13.5),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              frequencyLabel ?? const SizedBox.shrink(),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Same badge widget the Search Results cards use, so the
+          // wording, the five states and the D41 operating-hours
+          // fallback stay identical across both screens. It hugs its
+          // own content width and sits left-aligned, exactly as it
+          // does on Search Results - never stretched full width.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: RouteStatusBadge(
+              route: route,
+              showWhenFullDetail: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Line under the route name. The spec asks for the operator here;
+  /// the origin -> destination line is kept as a fallback so a route
+  /// whose operatorName was left blank never shows an empty row.
+  String _subtitleFor(RouteModel route) {
+    final operatorName = route.operatorName.trim();
+    if (operatorName.isNotEmpty) return operatorName;
+    return '${route.originStopName} to ${route.destinationStopName}';
+  }
+
+  /// Right-aligned frequency line under the price chip. Null for a
+  /// SCHEDULED route with no frequencyMinutes - there is no interval
+  /// to state, and the status chip already shows the operating hours.
+  Widget? _buildFrequencyLabel(RouteModel route) {
+    final String label;
+    final Color color;
+    final Color background;
+
+    if (route.departureType == DepartureType.whenFull) {
+      label = 'Departs when full';
+      color = AppColors.warning;
+      background = _frequencyAmberBackground;
+    } else {
+      final frequency = route.frequencyMinutes;
+      if (frequency == null || frequency <= 0) return null;
+      label = 'Every $frequency min';
+      color = AppColors.success;
+      background = _frequencyGreenBackground;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+        color: background,
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.right,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
     );
   }
 }
