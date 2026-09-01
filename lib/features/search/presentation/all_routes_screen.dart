@@ -66,6 +66,15 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
         stopsById = {};
       }
 
+      // Same ordering as the search-results screen: soonest departure
+      // first. See route_status_badge.dart's routeDepartureRank doc
+      // comment for the ranking rules.
+      final now = DateTime.now();
+      result.data.sort(
+        (a, b) =>
+            routeDepartureRank(a, now).compareTo(routeDepartureRank(b, now)),
+      );
+
       if (!mounted) return;
       setState(() {
         _routes = result.data;

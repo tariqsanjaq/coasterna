@@ -104,6 +104,15 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     return sortedStops.map((s) => s.stopName).toList();
   }
 
+  /// ACCEPTED TRADE-OFF, NOT UNHANDLED — [widget.originStop] can be
+  /// null here for two reasons: the origin stop was deactivated after
+  /// this route was created (Browse all routes only maps active stops
+  /// to their coordinates, see `all_routes_screen.dart`'s `_stopsById`),
+  /// or the stops fetch that would have supplied it failed upstream.
+  /// When that happens the query below falls back to the stop's name
+  /// string instead of `latitude,longitude` — Maps still opens, it is
+  /// just a text search instead of a precise pin. This fallback is
+  /// deliberate, not a missed case.
   Future<void> _openInMaps() async {
     // نبني نص "query" لرابط الخرائط: إحداثيات دقيقة إذا توفرت (عند الدخول من
     // نتائج البحث)، أو اسم المحطة كنص بحث إذا لم تتوفر الإحداثيات (عند الدخول

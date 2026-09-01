@@ -39,6 +39,14 @@ class RouteRepository {
   final FirebaseFirestore _firestore;
 
   /// Returns every active stop, for the Stop Picker screen (artboard 3).
+  ///
+  /// KNOWN SCOPE, NOT A BUG (FR-01) — there is no distance/radius/"near
+  /// AAU" filter here or anywhere in this repository. The MVP dataset
+  /// was collected to cover AAU-serving coaster routes only, so every
+  /// stop that ends up in the `stops` collection is already near AAU
+  /// by construction of the survey, not by a geo query. Adding a
+  /// distance filter would only matter once the dataset stops being
+  /// scoped that way, which is not the case today.
   Future<RepoResult<List<StopModel>>> getAllStops() async {
     final snapshot = await _firestore
         .collection('stops')

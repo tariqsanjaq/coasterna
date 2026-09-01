@@ -73,9 +73,14 @@ class AuthRepository {
   /// signIn() — it reads the already-signed-in user, it does not sign
   /// anyone in itself.
   ///
-  /// Fails CLOSED: if nobody is signed in, if the read is denied, or
-  /// if anything else goes wrong (offline, etc.), this returns false.
-  /// Never let an error here be mistaken for "yes, admin".
+  /// Fails CLOSED: if nobody is signed in, or if the `.get()` call
+  /// below throws for any reason — most concretely, the Security Rule
+  /// on `admins/{adminId}` denying the read — this returns false.
+  /// This is NOT protection against being offline: Firestore's get()
+  /// does not throw merely because the device has no connection, it
+  /// answers from the local cache when one exists. The catch here
+  /// exists for the read actually failing, not for offline. Never let
+  /// an error here be mistaken for "yes, admin".
   Future<bool> isCurrentUserAdmin() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return false;

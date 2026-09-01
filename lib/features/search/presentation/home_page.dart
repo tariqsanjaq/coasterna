@@ -38,6 +38,7 @@ class _HomeViewState extends State<_HomeView> {
   StopModel? _fromStop;
   StopModel? _toStop;
   List<Map<String, dynamic>> _recentSearches = [];
+  bool _isLoadingRecentSearches = true;
 
   @override
   void initState() {
@@ -46,13 +47,25 @@ class _HomeViewState extends State<_HomeView> {
   }
 
   Future<void> _loadRecentSearches() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_recentSearchesKey);
-    if (raw == null) return;
-    final decoded = jsonDecode(raw) as List<dynamic>;
+    List<Map<String, dynamic>> loaded = [];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_recentSearchesKey);
+      if (raw != null) {
+        final decoded = jsonDecode(raw) as List<dynamic>;
+        loaded = decoded.cast<Map<String, dynamic>>();
+      }
+    } catch (e) {
+      // Malformed or unreadable stored data must never crash Home —
+      // treat it the same as "no recent searches yet" instead.
+      debugPrint('Could not load recent searches: $e');
+      loaded = [];
+    }
+
     if (!mounted) return;
     setState(() {
-      _recentSearches = decoded.cast<Map<String, dynamic>>();
+      _recentSearches = loaded;
+      _isLoadingRecentSearches = false;
     });
   }
 
@@ -167,6 +180,57 @@ class _HomeViewState extends State<_HomeView> {
           repository: _repository,
         ),
       ),
+    );
+  }
+
+  // Loading / empty / data states for the RECENT section. Kept as its
+  // own method so build() doesn't have to branch on load state inline.
+  Widget _buildRecentSearches() {
+    if (_isLoadingRecentSearches) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.accent,
+          ),
+        ),
+      );
+    }
+
+    if (_recentSearches.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Text(
+          'No recent searches yet.',
+          style: TextStyle(color: AppColors.textTertiary, fontSize: 13),
+        ),
+      );
+    }
+
+    return Column(
+      children: _recentSearches.map((entry) {
+        final label = entry['toName'] != null
+            ? '${entry['fromName']} to ${entry['toName']}'
+            : 'From ${entry['fromName']}';
+        return InkWell(
+          onTap: () => _useRecentSearch(entry),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: Row(
+              children: [
+                const Icon(Icons.history, color: AppColors.accent, size: 18),
+                const SizedBox(width: AppSpacing.sm),
+                Text(label,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary, fontSize: 14)),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -341,39 +405,15 @@ class _HomeViewState extends State<_HomeView> {
                   ),
                 ),
               ),
-              if (_recentSearches.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.lg),
-                const Text(
-                  'RECENT',
-                  style: TextStyle(
-                      color: AppColors.textTertiary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600),
-                ),
-                ..._recentSearches.map((entry) {
-                  final label = entry['toName'] != null
-                      ? '${entry['fromName']} to ${entry['toName']}'
-                      : 'From ${entry['fromName']}';
-                  return InkWell(
-                    onTap: () => _useRecentSearch(entry),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.sm),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.history,
-                              color: AppColors.accent, size: 18),
-                          const SizedBox(width: AppSpacing.sm),
-                          Text(label,
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 14)),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-              ],
+              const SizedBox(height: AppSpacing.lg),
+              const Text(
+                'RECENT',
+                style: TextStyle(
+                    color: AppColors.textTertiary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600),
+              ),
+              _buildRecentSearches(),
             ],
           ),
         ),
