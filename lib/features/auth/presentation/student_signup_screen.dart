@@ -57,8 +57,9 @@ class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
     try {
       await _authRepository.signUp(email: email, password: password);
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const HomePage()),
+        (route) => false,
       );
     } on AuthFailure catch (failure) {
       if (!mounted) return;
