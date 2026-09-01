@@ -7,6 +7,7 @@ import '../../about/presentation/about_page.dart';
 import '../data/route_repository.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/student_login_screen.dart';
+import '../../favorites/presentation/favorites_screen.dart';
 import 'all_routes_screen.dart';
 import 'search_results_placeholder.dart';
 import 'widgets/stop_picker_sheet.dart';
@@ -299,12 +300,25 @@ class _HomeViewState extends State<_HomeView> {
                 );
               },
             )
-          else
+          else ...[
+            IconButton(
+              icon: const Icon(Icons.star_border),
+              tooltip: 'Favorites',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FavoritesScreen(repository: _repository),
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.logout),
               tooltip: 'Sign out',
               onPressed: _signOut,
             ),
+          ],
         ],
       ),
       body: SafeArea(

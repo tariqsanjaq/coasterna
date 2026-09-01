@@ -3,6 +3,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/route_model.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/data/auth_repository.dart';
+import '../../favorites/presentation/favorite_button.dart';
 
 /// Parses a "HH:mm" string into a DateTime on today's date. Returns
 /// null when the string is malformed, so one bad data entry can
@@ -95,6 +97,8 @@ class TripDetailsScreen extends StatefulWidget {
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   bool _showAllStops = false;
 
+  final AuthRepository _authRepository = AuthRepository();
+
   /// The full ordered timeline, taken straight from the route's own
   /// `stops` array sorted by `order`.
   List<String> get _allStopNames {
@@ -176,6 +180,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
             ),
           ],
         ),
+        actions: [
+          if (_authRepository.currentUser != null)
+            FavoriteButton(routeId: route.id),
+        ],
       ),
       body: SafeArea(
         child: Column(
