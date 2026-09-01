@@ -30,10 +30,12 @@ class FavoritesScreen extends StatefulWidget {
   State<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
+enum _LoadState { loading, loaded, empty, error }
+
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final FavoritesRepository _favoritesRepository = FavoritesRepository();
 
-  bool _isLoading = true;
+  _LoadState _state = _LoadState.loading;
   List<RouteModel> _routes = [];
 
   /// Same purpose as all_routes_screen.dart's `_stopsById`: lets a
@@ -48,10 +50,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Future<void> _loadFavorites() async {
-    setState(() => _isLoading = true);
+    setState(() => _state = _LoadState.loading);
 
-    List<RouteModel> favoriteRoutes = [];
-    Map<String, StopModel> stopsById = {};
     try {
       final favoriteIds = await _favoritesRepository.getFavoriteRouteIds();
       final result = await widget.repository.getAllActiveRoutes();
@@ -59,6 +59,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       // Same deliberately-tolerant pattern as all_routes_screen.dart:
       // if this second read fails, the favorite routes still render,
       // just without precise Maps coordinates on the trip screen.
+      Map<String, StopModel> stopsById = {};
       try {
         final stopsResult = await widget.repository.getAllStops();
         stopsById = {
@@ -68,7 +69,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         stopsById = {};
       }
 
-      favoriteRoutes = result.data
+      final favoriteRoutes = result.data
           .where((route) => favoriteIds.contains(route.id))
           .toList();
 
@@ -77,20 +78,30 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         (a, b) =>
             routeDepartureRank(a, now).compareTo(routeDepartureRank(b, now)),
       );
-    } catch (e) {
-      // A failed read here degrades to "no favorites shown" rather
-      // than a fourth error state — this screen only has the three
-      // states asked for (loading / empty / list).
-      debugPrint('Could not load favorite routes: $e');
-      favoriteRoutes = [];
-    }
 
-    if (!mounted) return;
-    setState(() {
-      _routes = favoriteRoutes;
-      _stopsById = stopsById;
-      _isLoading = false;
-    });
+      if (!mounted) return;
+      setState(() {
+        _routes = favoriteRoutes;
+        _stopsById = stopsById;
+
+        // Same isFromCache-while-empty heuristic as
+        // all_routes_screen.dart's _loadRoutes: an empty result that
+        // came from the offline cache means the read likely failed
+        // rather than the backend genuinely having zero routes, so it
+        // gets the error/retry state instead of "no favorites yet".
+        if (result.data.isEmpty && result.isFromCache) {
+          _state = _LoadState.error;
+        } else if (favoriteRoutes.isEmpty) {
+          _state = _LoadState.empty;
+        } else {
+          _state = _LoadState.loaded;
+        }
+      });
+    } catch (e) {
+      debugPrint('Could not load favorite routes: $e');
+      if (!mounted) return;
+      setState(() => _state = _LoadState.error);
+    }
   }
 
   /// Optimistic removal, not a full reload — see the FavoriteButton's
@@ -100,7 +111,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   /// one unfavorite would be slower and more jarring than simply
   /// dropping the row the student just unstarred.
   void _removeFromList(String routeId) {
-    setState(() => _routes.removeWhere((route) => route.id == routeId));
+    setState(() {
+      _routes.removeWhere((route) => route.id == routeId);
+      if (_routes.isEmpty) _state = _LoadState.empty;
+    });
   }
 
   @override
@@ -127,13 +141,34 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
+    if (_state == _LoadState.loading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
-    if (_routes.isEmpty) {
+    if (_state == _LoadState.error) {
+      // Same error/retry pattern as all_routes_screen.dart's
+      // _buildBody, so a failed load isn't indistinguishable from a
+      // genuinely empty favorites list.
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off, color: AppColors.error, size: 32),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Could not load favorites. Check your connection.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextButton(onPressed: _loadFavorites, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    if (_state == _LoadState.empty) {
       // Same text style as home_page.dart's "No recent searches yet."
       // empty state, centred here because this is a whole screen
       // rather than a section inside a longer page.
@@ -152,6 +187,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       itemBuilder: (context, index) {
         final route = _routes[index];
         return InkWell(
+          key: ValueKey(route.id),
           borderRadius: BorderRadius.circular(AppRadius.card),
           onTap: () {
             Navigator.of(context).push(

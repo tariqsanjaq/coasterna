@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/favorites_repository.dart';
@@ -12,6 +13,11 @@ import '../data/favorites_repository.dart';
 /// implies an account. Every call site is expected to wrap this
 /// widget in `if (_authRepository.currentUser != null) ...` the same
 /// way the sign-out icon in home_page.dart is gated.
+///
+/// Reads its favorited state from `FavoritesRepository.idsNotifier`
+/// on every build rather than caching it locally, so every instance
+/// for the same `routeId` — a search card and the Trip Details AppBar
+/// star, say — repaints the moment any one of them toggles it.
 class FavoriteButton extends StatefulWidget {
   const FavoriteButton({super.key, required this.routeId, this.onChanged});
 
@@ -29,38 +35,39 @@ class FavoriteButton extends StatefulWidget {
 
 class _FavoriteButtonState extends State<FavoriteButton> {
   final _repository = FavoritesRepository();
-  bool _isFavorite = false;
 
   @override
   void initState() {
     super.initState();
-    _loadInitialState();
-  }
-
-  Future<void> _loadInitialState() async {
-    final isFavorite = await _repository.isFavorite(widget.routeId);
-    if (!mounted) return;
-    setState(() => _isFavorite = isFavorite);
+    // Kicks off the load for the current user's favorites if it
+    // hasn't happened yet; the ValueListenableBuilder below repaints
+    // once idsNotifier is populated. Concurrent instances share one
+    // in-flight load (see FavoritesRepository._ensureLoaded).
+    unawaited(_repository.getFavoriteRouteIds());
   }
 
   Future<void> _toggle() async {
-    await _repository.toggleFavorite(widget.routeId);
+    final nowFavorite = await _repository.toggleFavorite(widget.routeId);
     if (!mounted) return;
-    final newValue = !_isFavorite;
-    setState(() => _isFavorite = newValue);
-    widget.onChanged?.call(newValue);
+    widget.onChanged?.call(nowFavorite);
   }
 
   @override
   Widget build(BuildContext context) {
     // The icon change itself is the feedback — no snackbar needed.
-    return IconButton(
-      icon: Icon(
-        _isFavorite ? Icons.star : Icons.star_border,
-        color: _isFavorite ? AppColors.accent : AppColors.textTertiary,
-      ),
-      tooltip: _isFavorite ? 'Remove from favorites' : 'Add to favorites',
-      onPressed: _toggle,
+    return ValueListenableBuilder<Set<String>>(
+      valueListenable: FavoritesRepository.idsNotifier,
+      builder: (context, favoriteIds, _) {
+        final isFavorite = favoriteIds.contains(widget.routeId);
+        return IconButton(
+          icon: Icon(
+            isFavorite ? Icons.star : Icons.star_border,
+            color: isFavorite ? AppColors.accent : AppColors.textTertiary,
+          ),
+          tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+          onPressed: _toggle,
+        );
+      },
     );
   }
 }
