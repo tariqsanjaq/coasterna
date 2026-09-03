@@ -86,6 +86,17 @@ class RouteStop {
   }
 }
 
+/// One point along a route's recorded path. Used only to steer the
+/// "Open in Google Maps" link onto the bus's real road (decision D51)
+/// — these are sampled mid-road points from a GPX track, never a stop
+/// location. See `pathPoints` on [RouteModel] for the full rationale.
+class LatLngPoint {
+  final double lat;
+  final double lng;
+
+  const LatLngPoint(this.lat, this.lng);
+}
+
 /// One coaster line, in one direction. Matches the `routes` collection
 /// documented in Chapter 4.2.4 of the report.
 class RouteModel {
@@ -109,6 +120,18 @@ class RouteModel {
   final String collectedBy;
   final DateTime collectedOn;
 
+  /// Points sampled from the route's recorded GPX track, in order,
+  /// passed to Google Maps as directions waypoints so the "Open in
+  /// Google Maps" link traces the bus's actual road — not a straight
+  /// line and not the stops themselves. Stop coordinates were tried
+  /// and rejected for this: they sit at the roadside, so Google
+  /// detours to reach them (field-measured 21.9 km vs 11.2 km real),
+  /// while GPX-sampled mid-road points hold Google to the real path
+  /// (field-measured 7.2 km vs 7.32 km real). Null when no track has
+  /// been recorded for this route yet — the maps button then falls
+  /// back to the single-pin origin link, unchanged from before D51.
+  final List<LatLngPoint>? pathPoints;
+
   const RouteModel({
     required this.id,
     required this.routeName,
@@ -129,7 +152,44 @@ class RouteModel {
     required this.isActive,
     required this.collectedBy,
     required this.collectedOn,
+    this.pathPoints,
   });
+
+  /// Parses the Firestore `pathPoints` string ("lat,lng;lat,lng;...")
+  /// into points. Never throws: missing, empty, or malformed input all
+  /// return null so a bad string can never stop a route from loading —
+  /// the maps button just falls back to the single-pin link.
+  ///
+  /// Public (unlike the rest of this class's Firestore plumbing) so
+  /// the admin route form can reuse it to parse the path points field
+  /// on save, instead of duplicating the "lat,lng;..." grammar.
+  static List<LatLngPoint>? parsePathPoints(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    try {
+      final points = raw.split(';').map((pair) {
+        final parts = pair.split(',');
+        if (parts.length != 2) {
+          throw const FormatException('Expected "lat,lng"');
+        }
+        return LatLngPoint(
+          double.parse(parts[0].trim()),
+          double.parse(parts[1].trim()),
+        );
+      }).toList();
+      return points.isEmpty ? null : points;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Inverse of [parsePathPoints]. Null or empty points serialize to
+  /// null so `toFirestore()` writes the field as unset rather than an
+  /// empty string. Also reused by the admin route form to pre-fill the
+  /// path points field in edit mode.
+  static String? pathPointsToFirestore(List<LatLngPoint>? points) {
+    if (points == null || points.isEmpty) return null;
+    return points.map((p) => '${p.lat},${p.lng}').join(';');
+  }
 
   /// Builds a RouteModel from a Firestore document snapshot.
   /// Call this when reading data that came directly from Firestore
@@ -167,6 +227,9 @@ class RouteModel {
       isActive: data['isActive'] as bool,
       collectedBy: data['collectedBy'] as String,
       collectedOn: (data['collectedOn'] as Timestamp).toDate(),
+      pathPoints: parsePathPoints(
+        data['pathPoints'] is String ? data['pathPoints'] as String : null,
+      ),
     );
   }
 
@@ -195,6 +258,7 @@ class RouteModel {
       'isActive': isActive,
       'collectedBy': collectedBy,
       'collectedOn': Timestamp.fromDate(collectedOn),
+      'pathPoints': pathPointsToFirestore(pathPoints),
     };
   }
 }

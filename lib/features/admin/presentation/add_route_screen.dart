@@ -57,6 +57,7 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
   final _lastDepController = TextEditingController();
   final _frequencyController = TextEditingController();
   final _waypointController = TextEditingController();
+  final _pathPointsController = TextEditingController();
   final _collectedByController = TextEditingController();
   final _collectedOnController = TextEditingController();
 
@@ -102,6 +103,8 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
         ..addAll(existing.operatingDays);
 
       _waypoints.addAll(_waypointNamesFrom(existing.stops));
+      _pathPointsController.text =
+          RouteModel.pathPointsToFirestore(existing.pathPoints) ?? '';
     } else {
       // Default the survey date to today. It stays editable, because a
       // route is often entered days after it was actually recorded.
@@ -195,6 +198,7 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
     _lastDepController.dispose();
     _frequencyController.dispose();
     _waypointController.dispose();
+    _pathPointsController.dispose();
     _collectedByController.dispose();
     _collectedOnController.dispose();
     super.dispose();
@@ -249,6 +253,43 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
     if (required != null) return required;
     final parsed = DateTime.tryParse(value!.trim());
     if (parsed == null) return 'Use YYYY-MM-DD';
+    return null;
+  }
+
+  /// Path points are optional — empty is always valid, since most
+  /// routes have no recorded GPX track yet. When non-empty, every
+  /// segment must parse as "lat,lng" with lat in -90..90 and lng in
+  /// -180..180, and the message names exactly which point failed and
+  /// why, since this field is typed by hand from a survey printout.
+  String? _pathPointsValidator(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) return null;
+
+    final segments = trimmed.split(';');
+    for (var i = 0; i < segments.length; i++) {
+      final segment = segments[i].trim();
+      final pointNumber = i + 1;
+      if (segment.isEmpty) {
+        return 'Point $pointNumber is empty — remove the extra semicolon.';
+      }
+
+      final parts = segment.split(',');
+      if (parts.length != 2) {
+        return 'Point $pointNumber must be "lat,lng" — got "$segment".';
+      }
+
+      final lat = double.tryParse(parts[0].trim());
+      final lng = double.tryParse(parts[1].trim());
+      if (lat == null || lng == null) {
+        return 'Point $pointNumber is not two numbers — got "$segment".';
+      }
+      if (lat < -90 || lat > 90) {
+        return 'Point $pointNumber latitude must be between -90 and 90.';
+      }
+      if (lng < -180 || lng > 180) {
+        return 'Point $pointNumber longitude must be between -180 and 180.';
+      }
+    }
     return null;
   }
 
@@ -310,6 +351,7 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
         isActive: _isActive,
         collectedBy: _collectedByController.text.trim(),
         collectedOn: DateTime.parse(_collectedOnController.text.trim()),
+        pathPoints: RouteModel.parsePathPoints(_pathPointsController.text),
       );
 
       if (existing == null) {
@@ -679,6 +721,29 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
                   ],
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          AdminLabeledField(
+            label: 'Route path points',
+            child: TextFormField(
+              controller: _pathPointsController,
+              minLines: 2,
+              maxLines: 4,
+              style: AppTextStyles.monoData(fontSize: 13),
+              decoration: adminInputDecoration(
+                hintText: '32.043402,35.778540;32.035934,35.790880',
+              ).copyWith(
+                helperText: 'Semicolon-separated lat,lng pairs sampled '
+                    'from the recorded GPX track. Leave empty if no '
+                    'track was recorded.',
+                helperMaxLines: 3,
+                helperStyle: const TextStyle(
+                  fontSize: 11.5,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              validator: _pathPointsValidator,
             ),
           ),
           if (_errorMessage != null) ...[
