@@ -1,0 +1,17 @@
+AM docs/project-status.md
+ D lib/features/admin/domain/.gitkeep
+ M lib/features/auth/data/auth_repository.dart
+ D lib/features/auth/domain/.gitkeep
+ M lib/features/search/data/route_repository.dart
+ D lib/features/search/domain/.gitkeep
+ M lib/features/search/presentation/all_routes_screen.dart
+ M lib/features/search/presentation/home_page.dart
+ D lib/features/trip/domain/.gitkeep
+ M lib/features/trip/presentation/trip_details_screen.dart
+?? docs/audit-trail/batch-fix-2026-09-01-analyze.txt
+?? docs/audit-trail/batch-fix-2026-09-01-git-branch.txt
+?? docs/audit-trail/batch-fix-2026-09-01-git-worktree.txt
+?? docs/audit-trail/batch-fix-2026-09-01-status.txt
+?? docs/audit-trail/batch-fix-2026-09-01-test.txt
+?? docs/audit-trail/full-code-audit-2026-08-31.md
+?? docs/audit-trail/project-gap-recheck-2026-09-01.md

@@ -1,0 +1,22 @@
+ M lib/features/auth/data/auth_repository.dart
+ M lib/features/favorites/data/favorites_repository.dart
+ M lib/features/favorites/presentation/favorite_button.dart
+ M lib/features/favorites/presentation/favorites_screen.dart
+ M test/favorites_repository_test.dart
+?? devtools_options.yaml
+?? docs/audit-trail/batch-fix-2026-09-01-analyze.txt
+?? docs/audit-trail/batch-fix-2026-09-01-diffstat.txt
+?? docs/audit-trail/batch-fix-2026-09-01-git-branch.txt
+?? docs/audit-trail/batch-fix-2026-09-01-git-worktree.txt
+?? docs/audit-trail/batch-fix-2026-09-01-status.txt
+?? docs/audit-trail/batch-fix-2026-09-01-test.txt
+?? docs/audit-trail/batch-fix-2026-09-01.md
+?? docs/audit-trail/favorites-feature-2026-09-01-analyze.txt
+?? docs/audit-trail/favorites-feature-2026-09-01-numstat.txt
+?? docs/audit-trail/favorites-feature-2026-09-01-status.txt
+?? docs/audit-trail/favorites-feature-2026-09-01-test.txt
+?? docs/audit-trail/favorites-feature-2026-09-01.md
+?? docs/audit-trail/favorites-fixes-2026-09-01-analyze.txt
+?? docs/audit-trail/favorites-fixes-2026-09-01-test.txt
+?? docs/audit-trail/full-code-audit-2026-08-31.md
+?? docs/audit-trail/project-gap-recheck-2026-09-01.md

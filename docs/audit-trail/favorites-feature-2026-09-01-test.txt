@@ -1,0 +1,85 @@
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.76 (1.3.77 available)
+  cli_util 0.4.2 (0.6.0 available)
+  clock 1.1.2 (1.1.3 available)
+  cloud_firestore 6.8.0 (6.9.0 available)
+  cloud_firestore_platform_interface 8.0.6 (8.0.7 available)
+  cloud_firestore_web 5.7.2 (5.7.3 available)
+  code_assets 1.2.1 (2.0.0 available)
+  firebase_auth 6.5.7 (6.6.1 available)
+  firebase_auth_platform_interface 9.0.6 (9.0.7 available)
+  firebase_auth_web 6.2.6 (6.2.7 available)
+  firebase_core 4.13.0 (4.14.0 available)
+  firebase_core_platform_interface 8.1.0 (8.1.1 available)
+  firebase_core_web 3.10.0 (3.11.0 available)
+  flutter_launcher_icons 0.13.1 (0.14.4 available)
+  hooks 2.0.2 (2.2.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.0 (1.19.0 available)
+  objective_c 9.5.0 (9.6.0 available)
+  pub_semver 2.2.0 (2.2.1 available)
+  record_use 0.6.0 (1.1.1 available)
+  shared_preferences_android 2.4.27 (2.4.28 available)
+  shared_preferences_foundation 2.5.6 (2.5.7 available)
+  stack_trace 1.12.1 (1.12.2 available)
+  test_api 0.7.11 (0.7.13 available)
+  url_launcher_android 6.3.32 (6.3.33 available)
+  url_launcher_ios 6.4.1 (6.4.2 available)
+  url_launcher_linux 3.2.2 (3.2.3 available)
+  url_launcher_macos 3.2.5 (3.2.6 available)
+  url_launcher_windows 3.1.5 (3.1.6 available)
+  vector_math 2.2.0 (2.4.2 available)
+  vm_service 15.2.0 (15.3.0 available)
+  yaml 3.1.3 (3.1.4 available)
+Got dependencies!
+33 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading C:/Users/Tariq/coasterna_project/test/favorites_repository_test.dart
+00:00 +0: C:/Users/Tariq/coasterna_project/test/favorites_repository_test.dart: FavoritesRepository getFavoriteRouteIds returns an empty set when nothing is stored
+00:00 +1: C:/Users/Tariq/coasterna_project/test/favorites_repository_test.dart: FavoritesRepository toggleFavorite adds a route id that was not already favorited
+00:00 +2: C:/Users/Tariq/coasterna_project/test/favorites_repository_test.dart: FavoritesRepository toggleFavorite removes a route id that was already favorited
+00:00 +3: C:/Users/Tariq/coasterna_project/test/favorites_repository_test.dart: FavoritesRepository toggling one route id does not affect another stored id
+00:00 +4: C:/Users/Tariq/coasterna_project/test/route_model_test.dart: RouteStop fromJson and toJson round-trip preserves all fields
+00:00 +5: C:/Users/Tariq/coasterna_project/test/route_model_test.dart: DepartureType fromFirestore maps SCHEDULED and WHEN_FULL correctly
+00:00 +6: C:/Users/Tariq/coasterna_project/test/route_model_test.dart: DepartureType toFirestore is the exact inverse of fromFirestore
+00:00 +7: C:/Users/Tariq/coasterna_project/test/route_model_test.dart: DepartureType fromFirestore throws ArgumentError on an unknown value
+00:00 +8: C:/Users/Tariq/coasterna_project/test/route_model_test.dart: RouteDirection fromFirestore maps OUTBOUND and RETURN correctly
+00:00 +9: C:/Users/Tariq/coasterna_project/test/route_model_test.dart: RouteDirection toFirestore is the exact inverse of fromFirestore
+00:00 +10: C:/Users/Tariq/coasterna_project/test/route_model_test.dart: RouteDirection fromFirestore throws ArgumentError on an unknown value
+00:00 +11: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: parseTimeOnDay parses a valid HH:mm string onto the reference date
+00:00 +12: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: parseTimeOnDay accepts a single-digit hour
+00:00 +13: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: parseTimeOnDay returns null when the colon is missing
+00:00 +14: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: parseTimeOnDay returns null on non-numeric text
+00:00 +15: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: parseTimeOnDay returns null when the hour is out of range
+00:00 +16: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: parseTimeOnDay returns null when the minute is out of range
+00:00 +17: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: routeRunsToday returns true when today is in operatingDays
+00:00 +18: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: routeRunsToday returns false when today is not in operatingDays
+00:00 +19: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: routeRunsToday is not confused by lowercase values in the data
+00:00 +20: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: routeRunsToday an empty operatingDays list means the route runs every day
+00:00 +21: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: minutesUntilNextDeparture returns null when frequencyMinutes is null
+00:00 +22: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: minutesUntilNextDeparture returns null when frequencyMinutes is zero or negative
+00:00 +23: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: minutesUntilNextDeparture returns null when firstDeparture cannot be parsed
+00:00 +24: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: minutesUntilNextDeparture returns null before the service has started for the day
+00:00 +25: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: minutesUntilNextDeparture computes the wait from firstDeparture and frequency
+00:00 +26: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: minutesUntilNextDeparture returns a full interval when standing exactly at a departure
+00:00 +27: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: minutesUntilNextDeparture returns null when the next bus would fall after lastDeparture
+00:00 +28: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: routeDepartureRank a route that does not run today ranks below everything else
+00:00 +29: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: routeDepartureRank a WHEN_FULL route ranks below any scheduled route today
+00:00 +30: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: routeDepartureRank a WHEN_FULL route still ranks above a route not running today
+00:00 +31: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: routeDepartureRank before service starts, the rank is the wait until the first bus
+00:00 +32: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: routeDepartureRank sorting a mixed list puts the soonest bus first
+00:00 +33: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: formatOperatingDays collapses an unbroken run of days into a range
+00:00 +34: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: formatOperatingDays lists days separately when there is a gap
+00:00 +35: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: formatOperatingDays sorts into week order regardless of the order in Firestore
+00:00 +36: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: formatOperatingDays an empty list reads as every day
+00:00 +37: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: formatOperatingDays a single day is shown on its own
+00:00 +38: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: formatOperatingDays unknown day codes do not crash the screen
+00:00 +39: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: RouteModel.toFirestore writes enums as their agreed Firestore strings
+00:00 +40: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: RouteModel.toFirestore writes collectedOn as a Firestore Timestamp, not a DateTime
+00:00 +41: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: RouteModel.toFirestore does not write the document id into the document body
+00:00 +42: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: RouteModel.toFirestore keeps a null frequencyMinutes as null
+00:00 +43: C:/Users/Tariq/coasterna_project/test/route_status_test.dart: RouteModel.toFirestore serialises embedded waypoints in the order given
+00:00 +44: All tests passed!
+EXIT:0

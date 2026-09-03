@@ -1,0 +1,2 @@
+C:/Users/Tariq/coasterna_project                                         e554e6b [dev]
+C:/Users/Tariq/coasterna_project/.claude/worktrees/remote-control-ad61b3 2fa3c4c [claude/remote-control-ad61b3]

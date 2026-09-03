@@ -1,0 +1,6 @@
+ lib/features/auth/data/auth_repository.dart        |  12 ++-
+ .../favorites/data/favorites_repository.dart       | 117 ++++++++++++++++++---
+ .../favorites/presentation/favorite_button.dart    |  45 ++++----
+ .../favorites/presentation/favorites_screen.dart   |  74 +++++++++----
+ test/favorites_repository_test.dart                |  30 ++++++
+ 5 files changed, 223 insertions(+), 55 deletions(-)

@@ -1,0 +1,7 @@
+warning: in the working copy of 'docs/project-status.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/features/search/presentation/all_routes_screen.dart', LF will be replaced by CRLF the next time Git touches it
+14	6	docs/project-status.md
+8	1	lib/features/search/presentation/all_routes_screen.dart
+15	1	lib/features/search/presentation/home_page.dart
+15	4	lib/features/search/presentation/search_results_placeholder.dart
+8	0	lib/features/trip/presentation/trip_details_screen.dart

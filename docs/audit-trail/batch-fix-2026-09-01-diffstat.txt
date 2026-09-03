@@ -1,0 +1,13 @@
+warning: in the working copy of 'docs/project-status.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/features/search/presentation/all_routes_screen.dart', LF will be replaced by CRLF the next time Git touches it
+ docs/project-status.md                             |  20 ++--
+ lib/features/admin/domain/.gitkeep                 |   0
+ lib/features/auth/data/auth_repository.dart        |  11 +-
+ lib/features/auth/domain/.gitkeep                  |   0
+ lib/features/search/data/route_repository.dart     |   8 ++
+ lib/features/search/domain/.gitkeep                |   0
+ .../search/presentation/all_routes_screen.dart     |   9 ++
+ lib/features/search/presentation/home_page.dart    | 116 ++++++++++++++-------
+ lib/features/trip/domain/.gitkeep                  |   0
+ .../trip/presentation/trip_details_screen.dart     |   9 ++
+ 10 files changed, 126 insertions(+), 47 deletions(-)
