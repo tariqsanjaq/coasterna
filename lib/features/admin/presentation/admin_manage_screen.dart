@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/models/route_model.dart';
+import '../../../core/models/report_model.dart';
+import '../../../core/widgets/offline_banner.dart';
 import '../../search/data/route_repository.dart';
+import '../../reports/data/reports_repository.dart';
 
 // Spec v8.7 page 3, colour tokens. Declared locally so this file does
 // not depend on token names that may not exist in app_theme.dart yet.
@@ -840,6 +843,263 @@ class _RoutesManageListState extends State<RoutesManageList> {
               ),
             ],
           ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------
+// Reports (decision D52, part 1 — read/resolve only; submitting a
+// report is part 2, not built yet)
+// ---------------------------------------------------------------------
+
+/// Light tint of the accent gold (#AF9064), for the Open status pill.
+/// Not an explicit spec token — derived the same way _kSuccessBg above
+/// is derived from _kSuccess.
+const Color _kOpenBg = Color(0xFFF4EEE3);
+
+/// "first 8 chars…" — there is no user-lookup mechanism in this
+/// project (no `users` collection, no admin SDK call from the app), so
+/// the REPORTED BY column can only ever show the raw uid. Truncating
+/// keeps the column from dominating the table's width.
+String _truncateUid(String uid) =>
+    uid.length <= 8 ? uid : '${uid.substring(0, 8)}…';
+
+String _twoDigits(int value) => value.toString().padLeft(2, '0');
+
+/// "2026-09-03 14:05" — date AND time, unlike the admin forms'
+/// date-only fields, because more than one report can land on the
+/// same day and the admin needs to tell them apart.
+String _formatReportDate(DateTime date) =>
+    '${date.year}-${_twoDigits(date.month)}-${_twoDigits(date.day)} '
+    '${_twoDigits(date.hour)}:${_twoDigits(date.minute)}';
+
+/// The Open / Resolved pill for one report row. Same shape as
+/// _StatusPill's Active/Inactive pill, different colours and labels:
+/// Open in accent gold, Resolved in the same success green Active
+/// already uses (spec v8.7 page 3 colour tokens).
+class _ReportStatusPill extends StatelessWidget {
+  const _ReportStatusPill({required this.status, required this.flex});
+
+  final ReportStatus status;
+  final int flex;
+
+  @override
+  Widget build(BuildContext context) {
+    final isResolved = status == ReportStatus.resolved;
+    return Expanded(
+      flex: flex,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: isResolved ? _kSuccessBg : _kOpenBg,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            isResolved ? 'Resolved' : 'Open',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isResolved ? _kSuccess : AppColors.accent,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The "..." row menu for one report. Only one action exists —
+/// "Mark resolved" — unlike _RowMenu's Edit/Deactivate/Delete set, so
+/// this is its own small widget rather than a variant of _RowMenu.
+/// Disabled (greyed, not tappable) once the report is already
+/// resolved, since there is nothing left to do to it — reports have
+/// no "reopen" action.
+class _ReportRowMenu extends StatelessWidget {
+  const _ReportRowMenu({
+    required this.isResolved,
+    required this.onMarkResolved,
+  });
+
+  final bool isResolved;
+  final VoidCallback onMarkResolved;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 48,
+      child: PopupMenuButton<String>(
+        enabled: !isResolved,
+        icon: Icon(
+          Icons.more_horiz,
+          size: 20,
+          color:
+              isResolved ? AppColors.surfaceBorder : AppColors.textSecondary,
+        ),
+        tooltip: isResolved ? 'Already resolved' : 'Actions',
+        onSelected: (_) => onMarkResolved(),
+        itemBuilder: (context) => const [
+          PopupMenuItem<String>(
+            value: 'resolve',
+            child: Text('Mark resolved'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Every student-submitted data-error report, newest first, as
+/// ROUTE · REASON · REPORTED BY · DATE · STATUS · a "..." row menu
+/// whose only action is "Mark resolved".
+///
+/// Read-only otherwise — there is no add/edit form here, unlike
+/// RoutesManageList/StopsManageList, so this section needs none of
+/// AdminHomeScreen's form-panel states. See AdminHomeScreen's
+/// `_AdminSection.reports`.
+class ReportsManageList extends StatefulWidget {
+  const ReportsManageList({
+    super.key,
+    required this.onOpenCountChanged,
+  });
+
+  /// Called after every successful load with the number of reports
+  /// still OPEN, so the sidebar's "Reports (N)" label stays in sync
+  /// without AdminHomeScreen issuing a second query of its own — the
+  /// one getAllReports() call this view already needs is the only
+  /// read, the count is just relayed from its result.
+  final ValueChanged<int> onOpenCountChanged;
+
+  @override
+  State<ReportsManageList> createState() => _ReportsManageListState();
+}
+
+class _ReportsManageListState extends State<ReportsManageList> {
+  final _repository = ReportsRepository();
+  late Future<RepoResult<List<ReportModel>>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
+
+  Future<RepoResult<List<ReportModel>>> _load() async {
+    final result = await _repository.getAllReports();
+    widget.onOpenCountChanged(
+      result.data.where((r) => r.status == ReportStatus.open).length,
+    );
+    return result;
+  }
+
+  Future<void> _markResolved(ReportModel report) async {
+    try {
+      await _repository.resolveReport(report.id);
+      _reload();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not update. Check your connection.'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<RepoResult<List<ReportModel>>>(
+      future: _future,
+      builder: (context, snapshot) {
+        final reports = snapshot.data?.data ?? const <ReportModel>[];
+        final openCount =
+            reports.where((r) => r.status == ReportStatus.open).length;
+        final isLoading = snapshot.connectionState != ConnectionState.done;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ListHeader(
+              title: 'Reports',
+              subtitle: isLoading
+                  ? 'Loading...'
+                  : '${reports.length} reports · $openCount open',
+            ),
+            Expanded(child: _buildBody(snapshot)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(AsyncSnapshot<RepoResult<List<ReportModel>>> snapshot) {
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+    if (snapshot.hasError) {
+      return _StateMessage(
+        message: 'Could not load reports. Check your connection.',
+        icon: Icons.wifi_off,
+        onRetry: _reload,
+      );
+    }
+
+    final result = snapshot.data!;
+    final reports = result.data;
+    if (reports.isEmpty) {
+      return const _StateMessage(message: 'No reports yet.');
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (result.isFromCache) const OfflineBanner(),
+        Expanded(
+          child: _TableCard(
+            headerCells: const [
+              _HeadCell('Route', flex: 3),
+              _HeadCell('Reason', flex: 3),
+              _HeadCell('Reported by', flex: 2),
+              _HeadCell('Date', flex: 2),
+              _HeadCell('Status', flex: 2),
+              SizedBox(width: 48),
+            ],
+            rows: [
+              for (final report in reports)
+                _TableRow(
+                  cells: [
+                    _Cell(report.routeName, flex: 3, bold: true),
+                    _Cell(report.reasonLabel, flex: 3),
+                    _Cell(
+                      _truncateUid(report.reportedByUid),
+                      flex: 2,
+                      mono: true,
+                    ),
+                    _Cell(
+                      _formatReportDate(report.createdAt),
+                      flex: 2,
+                      mono: true,
+                    ),
+                    _ReportStatusPill(status: report.status, flex: 2),
+                    _ReportRowMenu(
+                      isResolved: report.status == ReportStatus.resolved,
+                      onMarkResolved: () => _markResolved(report),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }

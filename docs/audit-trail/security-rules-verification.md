@@ -151,3 +151,50 @@ write protection on `admins` verified in SR-10's original context.
 | Rules version tested | published rules as of 2026-08-15 |
 | Cases passed | 12 / 12 |                         |
 | Cases failed | 0 / 12 |                    |
+
+---
+
+## Round 3 — Reports collection (D52)
+
+**Context:** D52 part 1 added a new `reports` collection with a Security
+Rule requiring a signed-in student to create a report only under their
+own uid and only with status `OPEN`, admin-only read and update via the
+existing `isAdmin()`, and delete denied unconditionally. The eight cases
+below (SR-17 through SR-23, plus SR-18b) were run manually via the
+Firebase Console Rules Playground against the live `coasterna-fa940`
+project, on 2026-09-03, after the rules were published — evidenced by
+screenshots reviewed in chat, not attached as files in this repository.
+All 8/8 passed; 0 rule changes were needed.
+
+| Case | Identity | Operation | Location | Expected | Actual | Result |
+|------|----------|-----------|----------|----------|--------|--------|
+| SR-17 | STUDENT | create (own uid, status OPEN) | /reports/testReport1 | Allowed | Allowed | Pass |
+| SR-18 | STUDENT | create (another uid) | /reports/testReport2 | Denied | Denied | Pass |
+| SR-18b | STUDENT | create (own uid, status RESOLVED) | /reports/testReport2b | Denied | Denied | Pass |
+| SR-19 | STUDENT | get (reports collection) | /reports/testReport1 | Denied | Denied | Pass |
+| SR-20 | ADMIN | get | /reports/testReport1 | Allowed | Allowed | Pass |
+| SR-21 | ADMIN | update (status → RESOLVED) | /reports/testReport1 | Allowed | Allowed | Pass |
+| SR-22 | ANON | create | /reports/testReport3 | Denied | Denied | Pass |
+| SR-23 | ADMIN | delete | /reports/testReport1 | Denied | Denied | Pass |
+
+**Notes:** The full case definitions — document/update payloads, and the
+rule branch each case targets — are recorded in
+`docs/audit-trail/d52-part1-reports-backend.md` ("Manual Rules
+Playground steps required"), written when the `reports` collection and
+its rule were implemented; this table records only the verified
+outcome, not a re-derivation of the cases. SR-18b is an extra case
+beyond the six scenarios originally requested for D52 — it isolates the
+`create` rule's second condition (`status == 'OPEN'`) from its first
+(`reportedByUid == request.auth.uid`, already isolated by SR-18),
+matching the SR-numbering the case definitions already used.
+
+### Round 3 sign-off
+
+| Item | Value |
+|---|---|
+| Verification performed by | Tariq Sanjaq |
+| Rule design & documentation | Claude Code (D52 part 1) |
+| Date | 2026-09-03 |
+| Rules version tested | published rules as of 2026-09-03 (reports collection, D52) |
+| Cases passed | 8 / 8 |
+| Cases failed | 0 / 8 |

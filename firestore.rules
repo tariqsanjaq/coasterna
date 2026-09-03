@@ -38,6 +38,23 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // reports: decision D52, a deliberate deviation from the
+    // otherwise-locked three-collection rule (routes, stops, admins).
+    // A signed-in student may submit a report about a route, but only
+    // under their own uid (never on someone else's behalf) and only
+    // as an OPEN report — a student cannot submit a report that is
+    // already resolved. Reading the collection and resolving a report
+    // are both admin-only, via the same isAdmin() helper used for
+    // routes/stops writes. Deleting a report is denied entirely:
+    // reports are an audit trail, not a queue items get removed from.
+    match /reports/{reportId} {
+      allow create: if request.auth != null &&
+        request.resource.data.reportedByUid == request.auth.uid &&
+        request.resource.data.status == 'OPEN';
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
     // Any other collection not explicitly listed above is fully
     // locked by default. This protects any collection added later
     // (accidentally or intentionally) until rules for it are written

@@ -30,7 +30,12 @@ class AdminHomeScreen extends StatefulWidget {
 }
 
 /// Which sidebar item is selected.
-enum _AdminSection { routes, stops }
+///
+/// `reports` (decision D52, part 1) has no matching `_AdminView` form
+/// state — unlike Routes/Stops there is no add/edit form for a report,
+/// only a read-only table with a "Mark resolved" row action, so it
+/// never leaves `_AdminView.list`.
+enum _AdminSection { routes, stops, reports }
 
 /// What the content area is showing right now.
 enum _AdminView { list, stopForm, routeForm }
@@ -58,6 +63,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   int _reloadToken = 0;
 
   bool _isSigningOut = false;
+
+  /// The number of OPEN reports, for the sidebar's "Reports (N)"
+  /// label. Null until ReportsManageList has loaded at least once this
+  /// session — the sidebar shows the plain "Reports" label until then,
+  /// rather than fetching a second, redundant copy of the same list
+  /// just to keep a count fresh while looking at a different tab.
+  int? _openReportCount;
 
   void _openStopForm({StopModel? stop}) {
     setState(() {
@@ -126,6 +138,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             _Sidebar(
               selected: _section,
               isSigningOut: _isSigningOut,
+              openReportCount: _openReportCount,
               // Changing section always leaves an open form. Keeping a
               // half-typed form alive behind a sidebar click would let
               // the admin lose work without ever being asked.
@@ -164,18 +177,26 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           onCancel: () => _closeForm(reload: false),
         );
       case _AdminView.list:
-        if (_section == _AdminSection.routes) {
-          return RoutesManageList(
-            key: ValueKey('routes-$_reloadToken'),
-            onAddRoute: () => _openRouteForm(),
-            onEditRoute: (route) => _openRouteForm(route: route),
-          );
+        switch (_section) {
+          case _AdminSection.routes:
+            return RoutesManageList(
+              key: ValueKey('routes-$_reloadToken'),
+              onAddRoute: () => _openRouteForm(),
+              onEditRoute: (route) => _openRouteForm(route: route),
+            );
+          case _AdminSection.stops:
+            return StopsManageList(
+              key: ValueKey('stops-$_reloadToken'),
+              onAddStop: () => _openStopForm(),
+              onEditStop: (stop) => _openStopForm(stop: stop),
+            );
+          case _AdminSection.reports:
+            return ReportsManageList(
+              key: const ValueKey('reports'),
+              onOpenCountChanged: (count) =>
+                  setState(() => _openReportCount = count),
+            );
         }
-        return StopsManageList(
-          key: ValueKey('stops-$_reloadToken'),
-          onAddStop: () => _openStopForm(),
-          onEditStop: (stop) => _openStopForm(stop: stop),
-        );
     }
   }
 }
@@ -188,12 +209,17 @@ class _Sidebar extends StatelessWidget {
   const _Sidebar({
     required this.selected,
     required this.isSigningOut,
+    required this.openReportCount,
     required this.onSelect,
     required this.onSignOut,
   });
 
   final _AdminSection selected;
   final bool isSigningOut;
+
+  /// Null until the Reports tab has loaded at least once this
+  /// session — see `_AdminHomeScreenState._openReportCount`.
+  final int? openReportCount;
   final ValueChanged<_AdminSection> onSelect;
   final VoidCallback onSignOut;
 
@@ -230,6 +256,13 @@ class _Sidebar extends StatelessWidget {
             label: 'Stops',
             isSelected: selected == _AdminSection.stops,
             onTap: () => onSelect(_AdminSection.stops),
+          ),
+          _SidebarItem(
+            label: openReportCount == null
+                ? 'Reports'
+                : 'Reports ($openReportCount)',
+            isSelected: selected == _AdminSection.reports,
+            onTap: () => onSelect(_AdminSection.reports),
           ),
           const SizedBox(height: AppSpacing.md),
           _SidebarItem(
