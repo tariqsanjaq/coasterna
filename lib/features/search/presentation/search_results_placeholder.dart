@@ -3,7 +3,6 @@ import '../../../core/models/route_model.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/offline_banner.dart';
-import '../../auth/data/auth_repository.dart';
 import '../../favorites/presentation/favorite_button.dart';
 import '../../trip/presentation/trip_details_screen.dart';
 import '../data/route_repository.dart';
@@ -35,8 +34,6 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
 
   /// See all_routes_screen.dart — same meaning.
   bool _isOffline = false;
-
-  final AuthRepository _authRepository = AuthRepository();
 
   @override
   void initState() {
@@ -250,8 +247,7 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
                     ' \u00B7 about ${route.durationMinutes} min',
                 style: AppTextStyles.monoData(fontSize: 13.5),
               ),
-              if (_authRepository.currentUser != null)
-                FavoriteButton(routeId: route.id),
+              FavoriteButton(routeId: route.id, routeName: route.routeName),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),

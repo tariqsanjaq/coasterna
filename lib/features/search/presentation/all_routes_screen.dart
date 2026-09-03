@@ -3,7 +3,6 @@ import '../../../core/models/route_model.dart';
 import '../../../core/models/stop_model.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/offline_banner.dart';
-import '../../auth/data/auth_repository.dart';
 import '../../favorites/presentation/favorite_button.dart';
 import '../data/route_repository.dart';
 import '../../trip/presentation/trip_details_screen.dart';
@@ -35,8 +34,6 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
   _LoadState _state = _LoadState.loading;
   List<RouteModel> _routes = [];
   bool _isOffline = false;
-
-  final AuthRepository _authRepository = AuthRepository();
 
   /// Active stops keyed by document id, so tapping a route card can
   /// hand TripDetailsScreen the origin StopModel — and with it the
@@ -266,10 +263,7 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              if (_authRepository.currentUser != null)
-                FavoriteButton(routeId: route.id)
-              else
-                const SizedBox.shrink(),
+              FavoriteButton(routeId: route.id, routeName: route.routeName),
             ],
           ),
           const SizedBox(height: AppSpacing.xs),

@@ -269,6 +269,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               const SizedBox(width: AppSpacing.sm),
               FavoriteButton(
                 routeId: route.id,
+                routeName: route.routeName,
                 onChanged: (isFavorite) {
                   if (!isFavorite) _removeFromList(route.id);
                 },
