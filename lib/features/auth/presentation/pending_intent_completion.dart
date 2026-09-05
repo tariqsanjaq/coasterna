@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/pending_intent.dart';
+import '../data/auth_repository.dart';
 import '../../favorites/data/favorites_repository.dart';
 
 /// Completes whatever a guest was trying to do before being sent to
@@ -40,6 +41,29 @@ import '../../favorites/data/favorites_repository.dart';
 Future<void> completePendingIntent(BuildContext context) async {
   final intent = PendingIntentHolder.consume();
   if (intent == null) return;
+
+  // A pending intent only makes sense after a REAL sign-in — "Continue
+  // without signing in" reuses this exact same post-navigation path
+  // (see student_login_screen.dart's _goToHome doc comment) with no
+  // account ever created. `consume()` above has already discarded the
+  // intent either way, so it can never linger to fire on some later,
+  // legitimate sign-in — this just has to make sure a guest never gets
+  // a favorite silently written under the guest key, or a false
+  // confirmation for it.
+  //
+  // Fails CLOSED, same spirit as AuthRepository.isCurrentUserAdmin():
+  // if reading currentUser throws for any reason (concretely, Firebase
+  // not yet initialized — see FavoritesRepository._storageKey's own
+  // doc comment for why that getter guards the identical call the same
+  // way), treat it as "not signed in" rather than let the exception
+  // propagate out of this fire-and-forget call.
+  bool isSignedIn;
+  try {
+    isSignedIn = AuthRepository().currentUser != null;
+  } catch (_) {
+    isSignedIn = false;
+  }
+  if (!isSignedIn) return;
 
   switch (intent) {
     case PendingFavorite():

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/pending_intent.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../search/presentation/home_page.dart';
 import '../data/auth_repository.dart';
@@ -69,6 +70,19 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     // is one, is completed by HomePage itself once it has actually
     // mounted — see pending_intent_completion.dart's doc comment for
     // why that now happens there instead of here.
+  }
+
+  // "Continue without signing in" reuses _goToHome()'s exact navigation,
+  // but unlike a real sign-in, no account was ever created here — so
+  // any pending favorite/report intent must be thrown away first.
+  // completePendingIntent() also refuses to run without a signed-in
+  // user (belt-and-suspenders — see its own doc comment), but clearing
+  // it here as well means a guest who explicitly declines to sign in
+  // never has a stale intent lingering to fire on some unrelated later
+  // sign-in.
+  void _continueAsGuest() {
+    PendingIntentHolder.consume();
+    _goToHome();
   }
 
   @override
@@ -162,7 +176,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   ),
                   const Divider(height: AppSpacing.xl),
                   OutlinedButton(
-                    onPressed: _isLoading ? null : _goToHome,
+                    onPressed: _isLoading ? null : _continueAsGuest,
                     child: const Text('Continue without signing in'),
                   ),
                 ],
