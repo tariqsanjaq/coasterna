@@ -53,3 +53,7 @@ CLAUDE.md
 /windows/
 spec_v8_7.pdf
 spec/
+
+
+commit-msg-*.txt
+devtools_options.yaml
