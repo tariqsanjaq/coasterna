@@ -38,6 +38,7 @@ This project stores data in Cloud Firestore, a NoSQL document database. There ar
 | stops | array\<map\> | embedded waypoints: stopId (synthetic slug) + stopName + order — NOT searchable |
 | isActive | boolean | |
 | collectedBy / collectedOn | string / timestamp | field-data provenance |
+| pathPoints | string, nullable | `"lat,lng;lat,lng;…"` — points sampled from the route's recorded GPX track, used to steer the "Open in Google Maps" directions link onto the bus's real road instead of a stop-to-stop straight line (decision D51); null when no track has been recorded yet — the maps button then falls back to the single-pin origin link |
 
 ### `admins`
 
@@ -46,6 +47,21 @@ This project stores data in Cloud Firestore, a NoSQL document database. There ar
 | Document ID | — | equals the Firebase Auth UID exactly (confirmed Task #4) |
 | email | string | |
 | addedOn | timestamp | |
+
+### `reports`
+
+A student-submitted data-error report against a route — decision D52, a deliberate and documented deviation from the otherwise-locked three-collection rule (`routes`, `stops`, `admins`).
+
+| Field | Type | Notes |
+|---|---|---|
+| routeId | string | reference to routes.id — the route this report is about |
+| routeName | string | denormalized snapshot of the route's display name at report time — same pattern as originStopName/destinationStopName, so the admin table needs no lookup even if the route is later renamed or deleted |
+| reason | string enum | PRICE_INCORRECT / SCHEDULE_INCORRECT / ROUTE_NOT_OPERATING / STOP_INFO_INCORRECT / OTHER |
+| otherText | string, nullable | only meaningful when reason is OTHER; null otherwise |
+| reportedByUid | string | Firebase Auth uid of the reporting student; Security Rule requires this to equal the caller's own uid on create |
+| reportedByName | string, nullable | snapshot of the reporting student's Firebase Auth `displayName` at submit time (decision D53) — same denormalized-snapshot pattern as routeName; null for reports that predate D53 and for accounts that never set a name |
+| status | string enum | OPEN / RESOLVED; Security Rule requires every newly created report to be written as OPEN |
+| createdAt | timestamp | when the report was submitted |
 
 ## Visual Overview
 
@@ -77,6 +93,7 @@ classDiagram
       +bool isActive
       +string collectedBy
       +Timestamp collectedOn
+      +string pathPoints "nullable — GPX-sampled path for Maps link (D51)"
     }
     class RouteStop {
       +string stopId
@@ -101,11 +118,10 @@ The current queries in `RouteRepository` use only `==` equality filters on a sin
 
 ## Security Rules
 
-Public read access is open on `stops` and `routes` so the student search flow works without authentication. All writes on `stops` and `routes` require `isAdmin()`, checked via an `exists()` lookup against the caller's own document in `admins` — the caller is never trusted by a custom claim, only by document presence. The `admins` collection denies read and write unconditionally from the client, even for the admin who owns that document, since admin accounts are managed manually through the Firebase Console, never through the app. A default-deny catch-all closes every collection added later until rules are explicitly written for it.
+Public read access is open on `stops` and `routes` so the student search flow works without authentication. All writes on `stops` and `routes` require `isAdmin()`, checked via an `exists()` lookup against the caller's own document in `admins` — the caller is never trusted by a custom claim, only by document presence. The `admins` collection allows a signed-in user to read only their own document (used by the app to decide whether to show the Admin Dashboard) — reading anyone else's admin doc, or listing the collection, is still denied; writes remain fully blocked in both directions, since admin accounts are added manually through the Firebase Console, never through the app. The `reports` collection (decision D52) allows a signed-in student to create a report only under their own uid and only with `status == 'OPEN'` — a student cannot submit a report that's already resolved; reading the collection and resolving a report are both admin-only via `isAdmin()`; deletion is denied entirely, since reports are an audit trail, not queue items that get removed. A default-deny catch-all closes every collection added later until rules are explicitly written for it.
 
 ```
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -134,12 +150,32 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // admins: nobody can read or write this collection from the app,
-    // in either direction. Admin accounts are added manually through
-    // the Firebase Console by Tariq or Abdallah, never through the app.
+    // admins: a signed-in user may read ONLY their own admin document
+    // (used by the app to decide whether to show the Admin Dashboard).
+    // Reading anyone else's admin doc, or listing the whole collection,
+    // is still denied. Writes remain fully blocked in both directions —
+    // admin accounts are added manually through the Firebase Console by
+    // Tariq or Abdallah, never through the app.
     match /admins/{adminId} {
-      allow read: if false;
+      allow read: if request.auth != null && request.auth.uid == adminId;
       allow write: if false;
+    }
+
+    // reports: decision D52, a deliberate deviation from the
+    // otherwise-locked three-collection rule (routes, stops, admins).
+    // A signed-in student may submit a report about a route, but only
+    // under their own uid (never on someone else's behalf) and only
+    // as an OPEN report — a student cannot submit a report that is
+    // already resolved. Reading the collection and resolving a report
+    // are both admin-only, via the same isAdmin() helper used for
+    // routes/stops writes. Deleting a report is denied entirely:
+    // reports are an audit trail, not a queue items get removed from.
+    match /reports/{reportId} {
+      allow create: if request.auth != null &&
+        request.resource.data.reportedByUid == request.auth.uid &&
+        request.resource.data.status == 'OPEN';
+      allow read, update: if isAdmin();
+      allow delete: if false;
     }
 
     // Any other collection not explicitly listed above is fully
