@@ -1,9 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../search/presentation/home_page.dart';
 import '../data/auth_repository.dart';
-import 'pending_intent_completion.dart';
 import 'student_signup_screen.dart';
 
 /// Student sign-in. Signing in is OPTIONAL — the "Continue without
@@ -67,13 +65,10 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       MaterialPageRoute(builder: (context) => const HomePage()),
       (route) => false,
     );
-    // D52 part 2 — completes a guest's pending favorite/report intent,
-    // if there is one. See pending_intent_completion.dart's doc
-    // comment for why this uses this screen's own `context`. Fired
-    // and forgotten, same as FavoriteButton's own initial-load call —
-    // this screen has already navigated away and has nothing further
-    // to do once it fires.
-    unawaited(completePendingIntent(context));
+    // A guest's pending favorite/report intent (D52 part 2), if there
+    // is one, is completed by HomePage itself once it has actually
+    // mounted — see pending_intent_completion.dart's doc comment for
+    // why that now happens there instead of here.
   }
 
   @override

@@ -176,14 +176,17 @@ class _SearchResultsPlaceholderState extends State<SearchResultsPlaceholder> {
             separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
             itemBuilder: (context, index) => InkWell(
               borderRadius: BorderRadius.circular(AppRadius.card),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => TripDetailsScreen(
-                    route: _routes[index],
-                    originStop: widget.fromStop,
+              onTap: () {
+                ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => TripDetailsScreen(
+                      route: _routes[index],
+                      originStop: widget.fromStop,
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
               child: _buildRouteCard(_routes[index]),
             ),
           ),

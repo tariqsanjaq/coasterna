@@ -3,26 +3,31 @@ import '../../../core/pending_intent.dart';
 import '../../favorites/data/favorites_repository.dart';
 
 /// Completes whatever a guest was trying to do before being sent to
-/// sign in — decision D52 part 2. Called from both
-/// `student_login_screen.dart`'s `_goToHome()` and
-/// `student_signup_screen.dart`'s equivalent success path, right after
-/// each one's `pushAndRemoveUntil` to Home. A no-op when nothing is
-/// pending — a normal sign-in, not one that started from a guest tap.
+/// sign in — decision D52 part 2. Called from `HomePage`'s own
+/// `initState` (via a post-frame callback, once the `pushAndRemoveUntil`
+/// transition from `student_login_screen.dart` or
+/// `student_signup_screen.dart` has actually landed on Home) rather
+/// than from either sign-in screen. A no-op when nothing is pending —
+/// a normal sign-in, not one that started from a guest tap.
 ///
-/// Shared rather than duplicated in both screens: the two success
-/// paths need the exact same handling here, and copying this
-/// try/catch-plus-switch logic into both files would be the kind of
-/// duplication that drifts the moment one of them changes.
+/// Deliberately NOT called from the old login/signup screen's context
+/// right before `pushAndRemoveUntil`, even though that used to work —
+/// this app has exactly one app-wide `ScaffoldMessenger` (the implicit
+/// one `MaterialApp` provides above the single `Navigator`), so a
+/// SnackBar queued on it is not scoped to any particular screen or
+/// route. Firing it from a screen that's mid-teardown meant the
+/// confirmation kept floating over whatever screen the student
+/// navigated to next — Home, Trip Details, even back at Sign In —
+/// for the rest of its duration. Firing it from Home's own context,
+/// after Home has actually finished mounting, ties it to the screen
+/// the student actually lands on instead.
 ///
-/// Takes [context] from the CALLING screen (login or signup), not
-/// Home's. `ScaffoldMessenger` sits above the `Navigator` in the
-/// widget tree in this app's standard `MaterialApp` setup, so a
-/// SnackBar shown from the old screen's context still surfaces over
-/// Home once the `pushAndRemoveUntil` transition finishes — no need to
-/// thread anything through to `HomePage` itself. Callers are expected
-/// to fire this with `unawaited(...)` immediately after their
-/// navigation call, matching the fire-and-forget pattern
-/// `FavoriteButton` already uses for its own initial load.
+/// Shared rather than duplicated: both success paths need the exact
+/// same handling here, and copying this try/catch-plus-switch logic
+/// would be the kind of duplication that drifts the moment one of them
+/// changes. Callers are expected to fire this with `unawaited(...)`,
+/// matching the fire-and-forget pattern `FavoriteButton` already uses
+/// for its own initial load.
 ///
 /// PendingReport is NOT completed automatically. Submitting a report
 /// needs the reason the student typed, which was never captured before
@@ -42,7 +47,10 @@ Future<void> completePendingIntent(BuildContext context) async {
         await FavoritesRepository().toggleFavorite(intent.routeId);
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Added to favorites.')),
+          const SnackBar(
+            content: Text('Added to favorites.'),
+            duration: Duration(seconds: 3),
+          ),
         );
       } catch (_) {
         // Stale/deleted route, or the write failed for any other
@@ -58,6 +66,7 @@ Future<void> completePendingIntent(BuildContext context) async {
           content: Text(
             'Signed in. Open the route again to finish your report.',
           ),
+          duration: Duration(seconds: 3),
         ),
       );
   }

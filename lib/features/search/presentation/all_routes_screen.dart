@@ -185,6 +185,7 @@ class _AllRoutesScreenState extends State<AllRoutesScreen> {
               return InkWell(
                 borderRadius: BorderRadius.circular(AppRadius.card),
                 onTap: () {
+                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => TripDetailsScreen(

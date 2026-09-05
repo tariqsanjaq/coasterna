@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../about/presentation/about_page.dart';
 import '../data/route_repository.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../auth/presentation/pending_intent_completion.dart';
 import '../../auth/presentation/student_login_screen.dart';
 import '../../favorites/presentation/favorites_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
@@ -46,6 +48,16 @@ class _HomeViewState extends State<_HomeView> {
   void initState() {
     super.initState();
     _loadRecentSearches();
+    // Completes a guest's pending favorite/report intent (D52 part 2),
+    // if there is one — fired from a post-frame callback so it runs
+    // after this Home instance has actually finished mounting, using
+    // Home's own context rather than whatever screen sent the student
+    // to sign in. See pending_intent_completion.dart's doc comment for
+    // why this moved here.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(completePendingIntent(context));
+    });
   }
 
   Future<void> _loadRecentSearches() async {

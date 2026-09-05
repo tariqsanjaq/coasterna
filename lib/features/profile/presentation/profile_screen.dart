@@ -229,6 +229,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirmed != true) return;
 
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
     await _authRepository.signOut();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(

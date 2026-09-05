@@ -190,6 +190,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           key: ValueKey(route.id),
           borderRadius: BorderRadius.circular(AppRadius.card),
           onTap: () {
+            ScaffoldMessenger.of(context).removeCurrentSnackBar();
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => TripDetailsScreen(

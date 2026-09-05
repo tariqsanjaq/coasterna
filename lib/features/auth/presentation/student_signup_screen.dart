@@ -1,9 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../search/presentation/home_page.dart';
 import '../data/auth_repository.dart';
-import 'pending_intent_completion.dart';
 
 /// Student account creation. On success the student is already
 /// signed in by Firebase, so we go straight to search.
@@ -91,10 +89,9 @@ class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
         MaterialPageRoute(builder: (context) => const HomePage()),
         (route) => false,
       );
-      // D52 part 2 — same pending-intent completion as
-      // student_login_screen.dart's _goToHome(); see
+      // A guest's pending favorite/report intent (D52 part 2), if any,
+      // is completed by HomePage itself once mounted — see
       // pending_intent_completion.dart's doc comment.
-      unawaited(completePendingIntent(context));
     } on AuthFailure catch (failure) {
       if (!mounted) return;
       setState(() {
