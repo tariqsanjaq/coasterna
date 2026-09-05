@@ -551,6 +551,13 @@ class _ReportFormSheetState extends State<_ReportFormSheet> {
       return;
     }
 
+    // Null for an account that signed up before decision D53 and
+    // never set a display name — expected, and must not block
+    // submission.
+    final displayName = _authRepository.currentUser?.displayName;
+    final reportedByName =
+        (displayName == null || displayName.isEmpty) ? null : displayName;
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -567,6 +574,7 @@ class _ReportFormSheetState extends State<_ReportFormSheet> {
               ? _otherController.text.trim()
               : null,
           reportedByUid: uid,
+          reportedByName: reportedByName,
           status: ReportStatus.open,
           createdAt: DateTime.now(),
         ),

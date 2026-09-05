@@ -865,6 +865,16 @@ const Color _kOpenBg = Color(0xFFF4EEE3);
 String _truncateUid(String uid) =>
     uid.length <= 8 ? uid : '${uid.substring(0, 8)}…';
 
+/// REPORTED BY column value (decision D53): the reporting student's
+/// real name when the report captured one, otherwise the truncated
+/// uid fallback above — covers both the 9 pre-D53 reports and any
+/// account that signed up before D53 and never set a name.
+String _reportedByDisplay(ReportModel report) {
+  final name = report.reportedByName;
+  if (name != null && name.isNotEmpty) return name;
+  return _truncateUid(report.reportedByUid);
+}
+
 String _twoDigits(int value) => value.toString().padLeft(2, '0');
 
 /// "2026-09-03 14:05" — date AND time, unlike the admin forms'
@@ -1081,7 +1091,7 @@ class _ReportsManageListState extends State<ReportsManageList> {
                     _Cell(report.routeName, flex: 3, bold: true),
                     _Cell(report.reasonLabel, flex: 3),
                     _Cell(
-                      _truncateUid(report.reportedByUid),
+                      _reportedByDisplay(report),
                       flex: 2,
                       mono: true,
                     ),

@@ -96,6 +96,17 @@ class ReportModel {
   /// otherwise.
   final String? otherText;
   final String reportedByUid;
+
+  /// Snapshot of the reporting student's Firebase Auth `displayName`
+  /// at submit time (decision D53) — the same denormalized-snapshot
+  /// pattern [routeName] already uses, captured at write time rather
+  /// than looked up later because client code cannot query another
+  /// user's Auth profile by uid (that needs the Admin SDK, which this
+  /// project has no server for). Null for the 9 reports that existed
+  /// before D53, and for any account that signed up before D53 and
+  /// never sets a name — the admin table falls back to the truncated
+  /// uid display in both cases.
+  final String? reportedByName;
   final ReportStatus status;
   final DateTime createdAt;
 
@@ -106,6 +117,7 @@ class ReportModel {
     required this.reason,
     this.otherText,
     required this.reportedByUid,
+    this.reportedByName,
     required this.status,
     required this.createdAt,
   });
@@ -143,6 +155,9 @@ class ReportModel {
       reason: ReportReason.fromFirestore(data['reason'] as String),
       otherText: data['otherText'] as String?,
       reportedByUid: data['reportedByUid'] as String,
+      reportedByName: data['reportedByName'] is String
+          ? data['reportedByName'] as String
+          : null,
       status: ReportStatus.fromFirestore(data['status'] as String),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
     );
@@ -158,6 +173,7 @@ class ReportModel {
       'reason': reason.toFirestore(),
       'otherText': otherText,
       'reportedByUid': reportedByUid,
+      'reportedByName': reportedByName,
       'status': status.toFirestore(),
       'createdAt': Timestamp.fromDate(createdAt),
     };

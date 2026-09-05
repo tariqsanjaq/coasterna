@@ -6,6 +6,7 @@ ReportModel _baseReport({
   ReportReason reason = ReportReason.priceIncorrect,
   String? otherText,
   ReportStatus status = ReportStatus.open,
+  String? reportedByName,
 }) {
   return ReportModel(
     id: 'r1',
@@ -14,6 +15,7 @@ ReportModel _baseReport({
     reason: reason,
     otherText: otherText,
     reportedByUid: 'uid-student-abc123',
+    reportedByName: reportedByName,
     status: status,
     createdAt: DateTime(2026, 9, 3, 14, 5),
   );
@@ -102,6 +104,24 @@ void main() {
     });
   });
 
+  group('ReportModel.reportedByName (decision D53)', () {
+    test('is null when not given, and toFirestore() writes it as null '
+        '(key present, not omitted)', () {
+      final report = _baseReport();
+      expect(report.reportedByName, isNull);
+      final data = report.toFirestore();
+      expect(data['reportedByName'], isNull);
+      expect(data.containsKey('reportedByName'), isTrue);
+    });
+
+    test('carries the display-name snapshot through toFirestore when set',
+        () {
+      final report = _baseReport(reportedByName: 'Gaith Al-Omari');
+      expect(report.reportedByName, 'Gaith Al-Omari');
+      expect(report.toFirestore()['reportedByName'], 'Gaith Al-Omari');
+    });
+  });
+
   group('ReportModel.toFirestore()', () {
     test('does not write the document id into the document body', () {
       final data = _baseReport().toFirestore();
@@ -133,6 +153,7 @@ void main() {
         reason: ReportReason.other,
         otherText: 'Driver refused to stop at the listed stop',
         status: ReportStatus.open,
+        reportedByName: 'Gaith Al-Omari',
       );
       final data = original.toFirestore();
 
@@ -144,6 +165,7 @@ void main() {
       );
       expect(data['otherText'], original.otherText);
       expect(data['reportedByUid'], original.reportedByUid);
+      expect(data['reportedByName'], original.reportedByName);
       expect(
         ReportStatus.fromFirestore(data['status'] as String),
         original.status,

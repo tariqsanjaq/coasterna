@@ -26,13 +26,16 @@ class AuthRepository {
   /// The signed-in user, or null when nobody is signed in.
   User? get currentUser => _auth.currentUser;
 
-  /// Creates a new student account, then leaves them signed in.
-  Future<void> signUp({
+  /// Creates a new student account, then leaves them signed in. Returns
+  /// the UserCredential so callers (currently only
+  /// StudentSignUpScreen, decision D53) can set the display name on
+  /// the newly-created user right after this resolves.
+  Future<UserCredential> signUp({
     required String email,
     required String password,
   }) async {
     try {
-      await _auth.createUserWithEmailAndPassword(
+      return await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );

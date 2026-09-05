@@ -16,6 +16,8 @@ class StudentSignUpScreen extends StatefulWidget {
 
 class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
   final _authRepository = AuthRepository();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
@@ -26,6 +28,8 @@ class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -33,10 +37,16 @@ class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
   }
 
   Future<void> _signUp() async {
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirm = _confirmController.text;
 
+    if (firstName.isEmpty || lastName.isEmpty) {
+      setState(() => _errorMessage = 'Enter your first and last name.');
+      return;
+    }
     if (email.isEmpty || password.isEmpty) {
       setState(() => _errorMessage = 'Enter your email and password.');
       return;
@@ -57,7 +67,25 @@ class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
     });
 
     try {
-      await _authRepository.signUp(email: email, password: password);
+      final userCredential =
+          await _authRepository.signUp(email: email, password: password);
+
+      // Firebase Auth does not reliably reflect a just-set
+      // displayName on the same User object without a reload() first
+      // (documented SDK behavior — updateDisplayName() writes to the
+      // server, but the local User's cached profile fields are only
+      // refreshed by reload()). We reload before proceeding so
+      // completePendingIntent() below, and anything else reading
+      // AuthRepository().currentUser after this point, sees the name
+      // immediately rather than on the next app start (decision D53).
+      await userCredential.user
+          ?.updateDisplayName('$firstName $lastName');
+      await userCredential.user?.reload();
+      // AuthRepository().currentUser reads FirebaseAuth's live
+      // currentUser getter, so it already reflects the reload() above
+      // for completePendingIntent() and anything else reading it next
+      // — no separate reference needs to be held here.
+
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const HomePage()),
@@ -100,6 +128,22 @@ class _StudentSignUpScreenState extends State<StudentSignUpScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  TextField(
+                    controller: _firstNameController,
+                    decoration: const InputDecoration(
+                      hintText: 'First name',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextField(
+                    controller: _lastNameController,
+                    decoration: const InputDecoration(
+                      hintText: 'Last name',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
