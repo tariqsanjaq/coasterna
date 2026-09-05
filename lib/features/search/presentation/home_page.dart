@@ -8,6 +8,7 @@ import '../data/route_repository.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/student_login_screen.dart';
 import '../../favorites/presentation/favorites_screen.dart';
+import '../../profile/presentation/profile_screen.dart';
 import 'all_routes_screen.dart';
 import 'search_results_placeholder.dart';
 import 'widgets/stop_picker_sheet.dart';
@@ -235,38 +236,6 @@ class _HomeViewState extends State<_HomeView> {
     );
   }
 
-  Future<void> _signOut() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-          'You will need to sign in again to use a saved account. '
-              'You can still search buses as a guest.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Sign out'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    await _authRepository.signOut();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const StudentLoginScreen()),
-          (route) => false,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final canSearch = _fromStop != null;
@@ -314,9 +283,14 @@ class _HomeViewState extends State<_HomeView> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Sign out',
-              onPressed: _signOut,
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'Settings',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+              },
             ),
           ],
         ],
