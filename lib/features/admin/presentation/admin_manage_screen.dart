@@ -554,6 +554,7 @@ class _StopsManageListState extends State<StopsManageList> {
   Future<void> _toggle(StopModel stop) async {
     try {
       await _repository.setStopActive(stop.id, !stop.isActive);
+      if (!mounted) return;
       _reload();
     } catch (_) {
       if (!mounted) return;
@@ -578,8 +579,8 @@ class _StopsManageListState extends State<StopsManageList> {
 
     try {
       await _repository.deleteStop(stop.id);
-      _reload();
       if (!mounted) return;
+      _reload();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('"${stop.name}" deleted.')),
       );
@@ -724,6 +725,7 @@ class _RoutesManageListState extends State<RoutesManageList> {
   Future<void> _toggle(RouteModel route) async {
     try {
       await _repository.setRouteActive(route.id, !route.isActive);
+      if (!mounted) return;
       _reload();
     } catch (_) {
       if (!mounted) return;
@@ -748,8 +750,8 @@ class _RoutesManageListState extends State<RoutesManageList> {
 
     try {
       await _repository.deleteRoute(route.id);
-      _reload();
       if (!mounted) return;
+      _reload();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('"${route.routeName}" deleted.')),
       );
@@ -1004,6 +1006,7 @@ class _ReportsManageListState extends State<ReportsManageList> {
 
   Future<RepoResult<List<ReportModel>>> _load() async {
     final result = await _repository.getAllReports();
+    if (!mounted) return result;
     widget.onOpenCountChanged(
       result.data.where((r) => r.status == ReportStatus.open).length,
     );
@@ -1013,6 +1016,7 @@ class _ReportsManageListState extends State<ReportsManageList> {
   Future<void> _markResolved(ReportModel report) async {
     try {
       await _repository.resolveReport(report.id);
+      if (!mounted) return;
       _reload();
     } catch (_) {
       if (!mounted) return;
