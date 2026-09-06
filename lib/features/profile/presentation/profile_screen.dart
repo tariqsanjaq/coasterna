@@ -275,11 +275,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildNameSection(),
-              const SizedBox(height: AppSpacing.lg),
-              _buildPasswordSection(),
-              const SizedBox(height: AppSpacing.lg),
-              _buildSignOutSection(),
+              _buildProfileSection(),
+              const SizedBox(height: AppSpacing.xl),
+              _buildSecuritySection(),
+              const SizedBox(height: AppSpacing.xl),
+              _buildAccountSection(),
             ],
           ),
         ),
@@ -287,164 +287,340 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildNameSection() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Name',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _firstNameController,
-            decoration: const InputDecoration(
-              hintText: 'First name',
-              prefixIcon: Icon(Icons.person_outline),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _lastNameController,
-            decoration: const InputDecoration(
-              hintText: 'Last name',
-              prefixIcon: Icon(Icons.person_outline),
-            ),
-          ),
-          if (_nameError != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              _nameError!,
-              style: const TextStyle(color: AppColors.error, fontSize: 13.5),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-          FilledButton(
-            onPressed: _isSavingName ? null : _saveName,
-            child: _isSavingName
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                : const Text('Save name'),
-          ),
-        ],
-      ),
-    );
-  }
+  // --- Visual-only redesign below (D-2026-09-06 settings restyle) ---
+  // Three labeled sections (PROFILE / SECURITY / ACCOUNT), each its own
+  // card, with label-over-value field styling instead of outlined
+  // TextFields. Every field below is still the same TextField/
+  // controller wired to the same _saveName/_changePassword/_signOut
+  // logic above — only InputDecoration and layout changed.
 
-  Widget _buildPasswordSection() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.surfaceBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Password',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _currentPasswordController,
-            obscureText: _obscureCurrentPassword,
-            decoration: InputDecoration(
-              hintText: 'Current password',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                icon: Icon(_obscureCurrentPassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined),
-                onPressed: () => setState(
-                  () => _obscureCurrentPassword = !_obscureCurrentPassword,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _newPasswordController,
-            obscureText: _obscureNewPassword,
-            decoration: InputDecoration(
-              hintText: 'New password (6 characters or more)',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                icon: Icon(_obscureNewPassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined),
-                onPressed: () =>
-                    setState(() => _obscureNewPassword = !_obscureNewPassword),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _confirmPasswordController,
-            obscureText: _obscureNewPassword,
-            decoration: const InputDecoration(
-              hintText: 'Confirm new password',
-              prefixIcon: Icon(Icons.lock_outline),
-            ),
-          ),
-          if (_passwordError != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              _passwordError!,
-              style: const TextStyle(color: AppColors.error, fontSize: 13.5),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-          FilledButton(
-            onPressed: _isSavingPassword ? null : _changePassword,
-            child: _isSavingPassword
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                : const Text('Change password'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSignOutSection() {
-    return SizedBox(
-      width: double.infinity,
-      height: kMinTouchTarget,
-      child: OutlinedButton.icon(
-        onPressed: _signOut,
-        icon: const Icon(Icons.logout, color: AppColors.error),
-        label:
-            const Text('Sign out', style: TextStyle(color: AppColors.error)),
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.error),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.button),
-          ),
+  Widget _sectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm, left: 2),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          // Same token home_page.dart uses for its "RECENT" section
+          // label and each _StopField's "From"/"To" label — gold
+          // (AppColors.accent) fails WCAG contrast at this size per
+          // the Design System page, so this must not be gold.
+          color: AppColors.textTertiary,
         ),
       ),
+    );
+  }
+
+  Widget _sectionCard(Widget child) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.surfaceBorder),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+      ),
+      child: child,
+    );
+  }
+
+  // 32px-wide leading slot so the icon column lines up across every
+  // row in a card, whether or not that particular row has an icon.
+  Widget _iconSlot(Widget? icon) {
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: icon == null ? null : Center(child: icon),
+    );
+  }
+
+  Widget _accentCircleIcon(IconData icon) {
+    return Container(
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.15),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: AppColors.accent, size: 15),
+    );
+  }
+
+  // Static label ABOVE the field, not the field's internal
+  // (floating) label — floatingLabelBehavior.always has a built-in
+  // size/weight ceiling that stayed illegible on a real device even
+  // after two size bumps. A plain Text widget has no such ceiling.
+  Widget _fieldLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  Widget _fieldRow(
+      {required Widget leading, required String label, required Widget field}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        leading,
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _fieldLabel(label),
+              field,
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // The field itself now carries no label at all — that lives in
+  // _fieldLabel above it (see _fieldRow). Only the underline and an
+  // optional suffix (the password eye toggle) remain here.
+  InputDecoration _settingsFieldDecoration({Widget? suffixIcon}) {
+    return InputDecoration(
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+      // Darker than AppColors.surfaceBorder for definition against the
+      // white card — no dedicated "mid-tone border" token exists in
+      // AppColors, so this reuses textTertiary (already the darker of
+      // the two neutrals under consideration) rather than a new hex.
+      border: const UnderlineInputBorder(
+        borderSide: BorderSide(color: AppColors.textTertiary),
+      ),
+      enabledBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: AppColors.textTertiary),
+      ),
+      focusedBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: AppColors.accent),
+      ),
+      suffixIcon: suffixIcon,
+    );
+  }
+
+  static const _fieldValueStyle =
+      TextStyle(fontSize: 15, color: AppColors.textPrimary);
+
+  Widget _buildProfileSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionLabel('PROFILE'),
+        _sectionCard(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _fieldRow(
+                leading: _iconSlot(_accentCircleIcon(Icons.person_outline)),
+                label: 'First name',
+                field: TextField(
+                  controller: _firstNameController,
+                  style: _fieldValueStyle,
+                  decoration: _settingsFieldDecoration(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              _fieldRow(
+                leading: _iconSlot(null),
+                label: 'Last name',
+                field: TextField(
+                  controller: _lastNameController,
+                  style: _fieldValueStyle,
+                  decoration: _settingsFieldDecoration(),
+                ),
+              ),
+              if (_nameError != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  _nameError!,
+                  style:
+                      const TextStyle(color: AppColors.error, fontSize: 13.5),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                height: kMinTouchTarget,
+                child: ElevatedButton(
+                  onPressed: _isSavingName ? null : _saveName,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                    ),
+                  ),
+                  child: _isSavingName
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Save name'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecuritySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionLabel('SECURITY'),
+        _sectionCard(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _fieldRow(
+                leading:
+                    _iconSlot(const Icon(Icons.lock_outline,
+                        color: AppColors.accent, size: 18)),
+                label: 'Current password',
+                field: TextField(
+                  controller: _currentPasswordController,
+                  obscureText: _obscureCurrentPassword,
+                  style: _fieldValueStyle,
+                  decoration: _settingsFieldDecoration(
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureCurrentPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined),
+                      onPressed: () => setState(() =>
+                          _obscureCurrentPassword = !_obscureCurrentPassword),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              _fieldRow(
+                leading:
+                    _iconSlot(const Icon(Icons.lock_outline,
+                        color: AppColors.accent, size: 18)),
+                label: 'New password (6 characters or more)',
+                field: TextField(
+                  controller: _newPasswordController,
+                  obscureText: _obscureNewPassword,
+                  style: _fieldValueStyle,
+                  decoration: _settingsFieldDecoration(
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureNewPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined),
+                      onPressed: () => setState(
+                          () => _obscureNewPassword = !_obscureNewPassword),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              _fieldRow(
+                leading:
+                    _iconSlot(const Icon(Icons.lock_outline,
+                        color: AppColors.accent, size: 18)),
+                label: 'Confirm new password',
+                field: TextField(
+                  controller: _confirmPasswordController,
+                  obscureText: _obscureNewPassword,
+                  style: _fieldValueStyle,
+                  decoration: _settingsFieldDecoration(
+                    // Same toggle this field's obscureText already
+                    // depends on (shared with New password above) —
+                    // no new state, just the same eye icon/logic
+                    // pattern Current/New password already use.
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureNewPassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined),
+                      onPressed: () => setState(
+                          () => _obscureNewPassword = !_obscureNewPassword),
+                    ),
+                  ),
+                ),
+              ),
+              if (_passwordError != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  _passwordError!,
+                  style:
+                      const TextStyle(color: AppColors.error, fontSize: 13.5),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                height: kMinTouchTarget,
+                child: ElevatedButton(
+                  onPressed: _isSavingPassword ? null : _changePassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                    ),
+                  ),
+                  child: _isSavingPassword
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Change password'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccountSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionLabel('ACCOUNT'),
+        _sectionCard(
+          Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: _signOut,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              child: const Row(
+                children: [
+                  Icon(Icons.logout, color: AppColors.error, size: 20),
+                  SizedBox(width: AppSpacing.sm),
+                  Text(
+                    'Sign out',
+                    style: TextStyle(
+                      color: AppColors.error,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
