@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/models/stop_model.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../about/presentation/about_page.dart';
+import '../data/recent_searches_repository.dart';
 import '../data/route_repository.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/pending_intent_completion.dart';
@@ -33,11 +32,12 @@ class _HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<_HomeView> {
-  static const _recentSearchesKey = 'recent_searches';
   static const _maxRecentSearches = 5;
 
   final RouteRepository _repository = RouteRepository();
   final AuthRepository _authRepository = AuthRepository();
+  final RecentSearchesRepository _recentSearchesRepository =
+      RecentSearchesRepository();
 
   StopModel? _fromStop;
   StopModel? _toStop;
@@ -61,20 +61,7 @@ class _HomeViewState extends State<_HomeView> {
   }
 
   Future<void> _loadRecentSearches() async {
-    List<Map<String, dynamic>> loaded = [];
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_recentSearchesKey);
-      if (raw != null) {
-        final decoded = jsonDecode(raw) as List<dynamic>;
-        loaded = decoded.cast<Map<String, dynamic>>();
-      }
-    } catch (e) {
-      // Malformed or unreadable stored data must never crash Home —
-      // treat it the same as "no recent searches yet" instead.
-      debugPrint('Could not load recent searches: $e');
-      loaded = [];
-    }
+    final loaded = await _recentSearchesRepository.getRecentSearches();
 
     if (!mounted) return;
     setState(() {
@@ -100,9 +87,7 @@ class _HomeViewState extends State<_HomeView> {
     ].take(_maxRecentSearches).toList();
 
     setState(() => _recentSearches = updated);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_recentSearchesKey, jsonEncode(updated));
+    await _recentSearchesRepository.saveRecentSearches(updated);
   }
 
   Future _pickFromStop() async {
@@ -179,7 +164,10 @@ class _HomeViewState extends State<_HomeView> {
     if (from == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('That stop is no longer available.')),
+        const SnackBar(
+          content: Text('That stop is no longer available.'),
+          duration: Duration(seconds: 3),
+        ),
       );
       return;
     }

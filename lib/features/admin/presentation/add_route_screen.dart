@@ -367,6 +367,7 @@ class _RouteFormPanelState extends State<RouteFormPanel> {
           content: Text(
             '"${route.routeName}" ${existing == null ? 'saved' : 'updated'}.',
           ),
+          duration: const Duration(seconds: 3),
         ),
       );
       widget.onSaved();

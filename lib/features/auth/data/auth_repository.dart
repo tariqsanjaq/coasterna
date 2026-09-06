@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../favorites/data/favorites_repository.dart';
+import '../../search/data/recent_searches_repository.dart';
 
 /// Thrown when sign-in or sign-up fails. Carries a message that is
 /// safe to show the user directly.
@@ -71,14 +72,16 @@ class AuthRepository {
 
   /// Signs the current user out.
   ///
-  /// Also drops FavoritesRepository's in-memory favorites state (see
-  /// its resetForSignOut doc comment) — favorites are keyed per user,
-  /// but without this a second student signing in on the same shared
-  /// device would briefly see the outgoing student's favorites until
-  /// their own key finished loading.
+  /// Also drops FavoritesRepository's and RecentSearchesRepository's
+  /// in-memory state (see their resetForSignOut doc comments) — both
+  /// are keyed per user, but without this a second student signing in
+  /// on the same shared device would briefly see the outgoing
+  /// student's favorites/recent searches until their own key finished
+  /// loading.
   Future<void> signOut() async {
     await _auth.signOut();
     FavoritesRepository.resetForSignOut();
+    RecentSearchesRepository.resetForSignOut();
   }
 
   /// True only if the currently signed-in user has a matching document

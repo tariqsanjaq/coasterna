@@ -159,7 +159,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open Google Maps.')),
+        const SnackBar(
+          content: Text('Could not open Google Maps.'),
+          duration: Duration(seconds: 3),
+        ),
       );
     }
   }

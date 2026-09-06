@@ -122,6 +122,7 @@ class _StopFormPanelState extends State<StopFormPanel> {
                 ? '"${stop.name}" updated.'
                 : '"${stop.name}" saved.',
           ),
+          duration: const Duration(seconds: 3),
         ),
       );
       widget.onSaved();

@@ -82,7 +82,7 @@ class FavoritesRepository {
   /// Reads the stored set of favorite route ids. Malformed or
   /// unreadable stored data must never crash a screen — on any error
   /// this returns an empty set, mirroring the pattern
-  /// `_loadRecentSearches` uses in home_page.dart.
+  /// `RecentSearchesRepository` uses for the same reason.
   Future<Set<String>> getFavoriteRouteIds() async {
     await _ensureLoaded();
     return idsNotifier.value;

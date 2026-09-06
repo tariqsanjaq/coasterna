@@ -561,6 +561,7 @@ class _StopsManageListState extends State<StopsManageList> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Could not update. Check your connection.'),
+          duration: Duration(seconds: 3),
         ),
       );
     }
@@ -582,13 +583,17 @@ class _StopsManageListState extends State<StopsManageList> {
       if (!mounted) return;
       _reload();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"${stop.name}" deleted.')),
+        SnackBar(
+          content: Text('"${stop.name}" deleted.'),
+          duration: const Duration(seconds: 3),
+        ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Delete failed. Check your connection.'),
+          duration: Duration(seconds: 3),
         ),
       );
     }
@@ -732,6 +737,7 @@ class _RoutesManageListState extends State<RoutesManageList> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Could not update. Check your connection.'),
+          duration: Duration(seconds: 3),
         ),
       );
     }
@@ -753,13 +759,17 @@ class _RoutesManageListState extends State<RoutesManageList> {
       if (!mounted) return;
       _reload();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"${route.routeName}" deleted.')),
+        SnackBar(
+          content: Text('"${route.routeName}" deleted.'),
+          duration: const Duration(seconds: 3),
+        ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Delete failed. Check your connection.'),
+          duration: Duration(seconds: 3),
         ),
       );
     }
@@ -1023,6 +1033,7 @@ class _ReportsManageListState extends State<ReportsManageList> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Could not update. Check your connection.'),
+          duration: Duration(seconds: 3),
         ),
       );
     }

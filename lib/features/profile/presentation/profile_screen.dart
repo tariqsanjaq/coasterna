@@ -93,7 +93,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() => _isSavingName = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name updated.')),
+        const SnackBar(
+          content: Text('Name updated.'),
+          duration: Duration(seconds: 3),
+        ),
       );
     } catch (_) {
       if (!mounted) return;
@@ -162,7 +165,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _confirmPasswordController.clear();
       setState(() => _isSavingPassword = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password changed.')),
+        const SnackBar(
+          content: Text('Password changed.'),
+          duration: Duration(seconds: 3),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
