@@ -203,104 +203,122 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   Widget build(BuildContext context) {
     final route = widget.route;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
+    // canPop: false + a manual pop below so the guard also covers
+    // Android's system back (hardware button / edge swipe), which
+    // bypasses the AppBar BackButton's onPressed entirely and would
+    // otherwise let the report SnackBar survive into the next screen.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+        Navigator.of(context).pop();
+      },
+      child: Scaffold(
         backgroundColor: AppColors.background,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              route.routeName,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          foregroundColor: AppColors.textPrimary,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          titleSpacing: 0,
+          leading: BackButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).removeCurrentSnackBar();
+              Navigator.of(context).pop();
+            },
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                route.routeName,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-            Text(
-              route.operatorName,
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: AppColors.textSecondary,
+              Text(
+                route.operatorName,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.textSecondary,
+                ),
               ),
-            ),
+            ],
+          ),
+          actions: [
+            FavoriteButton(routeId: route.id, routeName: route.routeName),
           ],
         ),
-        actions: [
-          FavoriteButton(routeId: route.id, routeName: route.routeName),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                children: [
-                  _buildStopsCard(),
-                  const SizedBox(height: AppSpacing.md),
-                  _buildDetailsCard(),
-                ],
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  children: [
+                    _buildStopsCard(),
+                    const SizedBox(height: AppSpacing.md),
+                    _buildDetailsCard(),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _openInMaps,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.card),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _openInMaps,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.card),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Open in Google Maps',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                        child: const Text(
+                          'Open in Google Maps',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  if (route.pathPoints != null &&
-                      route.pathPoints!.length >= 2) ...[
+                    if (route.pathPoints != null &&
+                        route.pathPoints!.length >= 2) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      const Text(
+                        'Opens the road path in Google Maps. Stop names are '
+                        'listed above.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: AppSpacing.xs),
-                    const Text(
-                      'Opens the road path in Google Maps. Stop names are '
-                      'listed above.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.textSecondary,
+                    TextButton.icon(
+                      onPressed: _openReportForm,
+                      icon: const Icon(Icons.flag_outlined, size: 18),
+                      label: const Text('Report an issue'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        minimumSize: const Size(0, kMinTouchTarget),
                       ),
                     ),
                   ],
-                  const SizedBox(height: AppSpacing.xs),
-                  TextButton.icon(
-                    onPressed: _openReportForm,
-                    icon: const Icon(Icons.flag_outlined, size: 18),
-                    label: const Text('Report an issue'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      minimumSize: const Size(0, kMinTouchTarget),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -555,8 +573,9 @@ class _ReportFormSheetState extends State<_ReportFormSheet> {
     // never set a display name — expected, and must not block
     // submission.
     final displayName = _authRepository.currentUser?.displayName;
-    final reportedByName =
-        (displayName == null || displayName.isEmpty) ? null : displayName;
+    final reportedByName = (displayName == null || displayName.isEmpty)
+        ? null
+        : displayName;
 
     setState(() {
       _isSubmitting = true;
@@ -584,7 +603,10 @@ class _ReportFormSheetState extends State<_ReportFormSheet> {
       // Snackbar first, then close — same order RouteFormPanel's
       // _save() already uses for its own post-save confirmation.
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Report submitted. Thank you.')),
+        const SnackBar(
+          content: Text('Report submitted. Thank you.'),
+          duration: Duration(seconds: 3),
+        ),
       );
       Navigator.of(context).pop();
     } catch (_) {
