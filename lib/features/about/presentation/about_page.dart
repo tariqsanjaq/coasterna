@@ -32,19 +32,19 @@ class AboutPage extends StatelessWidget {
                   _InfoCard(
                     title: 'Data source',
                     content:
-                    'Route, stop, and schedule details were collected by the project team through in-person field visits to bus stations and terminals across Amman and Salt. Timings are observed, not guaranteed by operators.',
+                    'Route, stop, and schedule details were collected by the project team through in-person field visits to bus stations and terminals across Amman and Salt.\nTimings are observed, not guaranteed by operators.',
                   ),
                   SizedBox(height: AppSpacing.md),
                   _InfoCard(
                     title: 'University',
                     content:
-                    'Al-Ahliyya Amman University / Faculty of Information Technology / Department of Software Engineering',
+                    'Al-Ahliyya Amman University \nFaculty of Information Technology \nDepartment of Computer Science \nDepartment of Software Engineering',
                   ),
                   SizedBox(height: AppSpacing.md),
                   _InfoCard(
                     title: 'Team',
                     content:
-                    'Gaith Swaidan, Tariq Sanjaq, Abdallah Abufara, Abdalla Odeh',
+                    'Tariq Sanjaq\nGaith Swaidan\nAbdallah Abufara\nAbdalla Odeh',
                   ),
                 ],
               ),
